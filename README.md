@@ -1,4 +1,5 @@
 # DefInject
+
 Functional Dependency Injection in Elixir
 
 ## Installation
@@ -39,6 +40,7 @@ def send_welcome_email(user_id, deps \\ %{}) do
   |> (deps[{Mailer, :send, 1}] || &Mailer.send/1).()
 end
 ```
+
 Then we can inject mock functions in tests.
 
 ```elixir
@@ -55,6 +57,7 @@ end
 ```
 
 ### `mock`
+
 If you are not interested in parameters of mock function, `mock/1` is handy to reduce boilerplates.
 
 ```elixir
@@ -91,9 +94,8 @@ end
 ## Why?
 
 1. As we inject objects via constructor in OOP, we should inject functions via arguments in FP.
-2. Mocking per function is better than mocking per module as we need only subset of module for single test.
-3. Unlike other mocking libraries which modifies global modules and disables async tests, 
-  definject does not modify global modules so enables async tests.
+2. Defining mock modules even for single function is too much boilerplate. What we want to inject are functions, not modules.
+3. Most mocking libraries replace global modules with mocked ones which make async test not possible. definject mutate nothing globally that you can use `async: true`.
 
 ## License
 
