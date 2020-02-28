@@ -8,7 +8,7 @@ in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:definject, "~> 0.1.0", only: :test}]
+  [{:definject, "~> 0.1.0"}]
 end
 ```
 
