@@ -73,15 +73,12 @@ defmodule Inject do
   end
 
   defmacro definject(head, do: body) do
-    original =
+    if Application.get_env(:definject, :enabled?, Mix.env() == :test) do
+      inject_function(%{head: head, body: body, env: __CALLER__})
+    else
       quote do
         def unquote(head), do: unquote(body)
       end
-
-    if Application.get_env(:definject, :enabled?, Mix.env() == :test) do
-      {:__block__, [], [original, inject_function(%{head: head, body: body, env: __CALLER__})]}
-    else
-      original
     end
   end
 
@@ -140,7 +137,7 @@ defmodule Inject do
   def head_with_deps(%{head: {name, meta, params}}) when is_list(params) do
     deps =
       quote do
-        %{} = deps
+        %{} = deps \\ %{}
       end
 
     {name, meta, params ++ [deps]}

@@ -13,7 +13,7 @@ defmodule InjectImplTest do
 
       expected_head =
         quote do
-          add(a, b, %{} = deps)
+          add(a, b, %{} = deps \\ %{})
         end
 
       actual_head = Inject.head_with_deps(%{head: head, env: __ENV__})
@@ -30,7 +30,7 @@ defmodule InjectImplTest do
 
       expected_head =
         quote do
-          add(%{} = deps)
+          add(%{} = deps \\ %{})
         end
 
       actual_head = Inject.head_with_deps(%{head: head, env: __ENV__})
@@ -92,7 +92,7 @@ defmodule InjectImplTest do
 
       expected =
         quote do
-          def add(a, b, %{} = deps) do
+          def add(a, b, %{} = deps \\ %{}) do
             Inject.Check.raise_if_uninjectable_deps_injected(deps)
             Inject.Check.raise_if_unknown_deps_found([{Calc, :sum, 2}], deps)
 
