@@ -71,7 +71,7 @@ test "send_welcome_email with mock/1" do
 end
 ```
 
-Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end`.
+Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end` when expanded.
 
 ### `strict: false`
 
@@ -92,8 +92,8 @@ end
 
 1. As we inject objects via constructor in OOP, we should inject functions via arguments in FP.
 2. Mocking per function is better than mocking per module as we need only subset of module for single test.
-3. Unlike other mocking libraries which modifies global modules and disables async tests, 
-  definject does not modify global modules so enables async tests.
+3. Unlike some other mocking libraries which replaces global modules during test and make it impossible to test async, 
+  definject mutate nothing so still can test async.
 
 ## License
 
