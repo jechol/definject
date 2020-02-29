@@ -1,9 +1,9 @@
 defmodule Inject do
   @moduledoc """
 
-  `definject` transforms function to accecpt a map where we can inject dependent functions.
+  ### `definject`
 
-  ## definject
+  `definject` transforms a function to accept a map where dependent functions can be injected.
 
       use Inject
 
@@ -14,7 +14,7 @@ defmodule Inject do
         |> Mailer.send()
       end
 
-  becomes
+  is expanded into
 
       def send_welcome_email(user_id, deps \\\\ %{}) do
         %{email: email} = (deps[{Repo, :get, 2}] || &Repo.get/2).(User, user_id)
@@ -22,8 +22,6 @@ defmodule Inject do
         (deps[{Email, :welcome, 1}] || &Email.welcome/1).(email)
         |> (deps[{Mailer, :send, 1}] || &Mailer.send/1).()
       end
-
-  ## mock
 
   Then we can inject mock functions in tests.
 
@@ -38,7 +36,9 @@ defmodule Inject do
         assert_receive :email_sent
       end
 
-  or more simply if you are not interested in arguments passed in mock
+  ### `mock`
+
+  If you don't need pattern matching in mock function, `mock/1` can be used to reduce boilerplates.
 
       test "send_welcome_email with mock/1" do
         Accounts.send_welcome_email(
@@ -52,17 +52,20 @@ defmodule Inject do
         assert_receive :email_sent
       end
 
-  ### strict: false
+  Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end` when expanded.
 
-  `definject` raises if the passed map includes function which is not dependency of the injected function.
-  You can disable this check by adding strict: false.
+  ### `strict: false`
 
-      Accounts.send_welcome_email(100, %{
-        {Repo, :get, 2} => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
-        {Repo, :all, 1} => fn _ -> [%User{email: "mr.jechol@gmail.com"}] end,
-        :strict => false,
-      })
+  `definject` raises if the passed map includes a function that's not called within the injected function.
+  You can disable this by adding `strict: false` option.
 
+      test "send_welcome_email with strict: false" do
+        Accounts.send_welcome_email(100, %{
+          {Repo, :get, 2} => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
+          {Repo, :all, 1} => fn _ -> [%User{email: "mr.jechol@gmail.com"}] end,
+          :strict => false,
+        })
+      end
   """
   @uninjectable [:erlang, Kernel, Macro, Module, Access]
 
