@@ -2,6 +2,11 @@
 
 Functional Dependency Injection in Elixir
 
+## Why?
+Existing mock libraries provide mocks at module level. While this approach works okay, it is somewhat rigid and cumbersome to use. Besides, functions are the basic building blocks of functional programming, not modules. Wouldn't it be nice to have a way to inject mocks at function level then?
+
+`definject` is an alternative way to inject mocks to each function. It grants a more fine-grained control over mocks, allowing you to provide different mocks to each function. It also does not limit using `:async` option as mocks are contained in each test function.
+
 ## Installation
 
 The package can be installed by adding `definject` to your list of dependencies
@@ -13,11 +18,11 @@ def deps do
 end
 ```
 
-## Features
+## Usage
 
 ### `definject`
 
-`definject` transforms function to accept a map where we can inject dependent functions.
+`definject` transforms a function to accept a map where dependent functions can be injected.
 
 ```elixir
 use Inject
@@ -30,7 +35,7 @@ definject send_welcome_email(user_id) do
 end
 ```
 
-becomes
+is expanded into
 
 ```elixir
 def send_welcome_email(user_id, deps \\ %{}) do
@@ -57,8 +62,7 @@ end
 ```
 
 ### `mock`
-
-If you are not interested in parameters of mock function, `mock/1` is handy to reduce boilerplates.
+If you don't need pattern matching in mock function, `mock/1` can be used to reduce boilerplates.
 
 ```elixir
 test "send_welcome_email with mock/1" do
@@ -74,12 +78,12 @@ test "send_welcome_email with mock/1" do
 end
 ```
 
-Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end`.
+Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end` when expanded.
 
 ### `strict: false`
 
-`definject` raises if the passed map includes function which is not dependency of the injected function.
-You can disable this check by adding strict: false.
+`definject` raises if the passed map includes a function that's not called within the injected function.
+You can disable this by adding `strict: false` option.
 
 ```elixir
 test "send_welcome_email with strict: false" do
@@ -91,11 +95,6 @@ test "send_welcome_email with strict: false" do
 end
 ```
 
-## Why?
-
-1. As we inject objects via constructor in OOP, we should inject functions via arguments in FP.
-2. Defining mock modules even for single function is too much boilerplate. What we want to inject are functions, not modules.
-3. Most mocking libraries replace global modules with mocked ones which make async test not possible. definject mutate nothing globally that you can use `async: true`.
 
 ## License
 
