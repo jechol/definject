@@ -1,4 +1,5 @@
 # DefInject
+
 Functional Dependency Injection in Elixir
 
 ## Why?
@@ -94,6 +95,7 @@ test "send_welcome_email with strict: false" do
 end
 ```
 
-## License	
+
+## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
