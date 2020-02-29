@@ -15,7 +15,7 @@ in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:definject, "~> 0.3.2"}]
+  [{:definject, "~> 0.3.3"}]
 end
 ```
 
