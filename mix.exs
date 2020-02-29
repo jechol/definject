@@ -1,17 +1,20 @@
 defmodule Definject.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+
   def project do
     [
       app: :definject,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.5",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       package: package(),
       description: "Functional Dependency Injection",
-      source_url: "https://github.com/definject/definject"
+      source_url: "https://github.com/definject/definject",
+      docs: docs()
     ]
   end
 
@@ -40,6 +43,19 @@ defmodule Definject.MixProject do
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/definject/definject"},
       maintainers: ["Jechol Lee(mr.jechol@gmail.com)"]
+    ]
+  end
+
+  defp docs() do
+    [
+      main: "readme",
+      name: "definject",
+      source_ref: "v#{@version}",
+      canonical: "http://hexdocs.pm/definject",
+      source_url: "https://github.com/definject/definject",
+      extras: [
+        "README.md"
+      ]
     ]
   end
 end

@@ -3,6 +3,7 @@
 Functional Dependency Injection in Elixir
 
 ## Why?
+
 Existing mock libraries provide mocks at module level. While this approach works okay, it is somewhat rigid and cumbersome to use. Besides, functions are the basic building blocks of functional programming, not modules. Wouldn't it be nice to have a way to inject mocks at function level then?
 
 `definject` is an alternative way to inject mocks to each function. It grants a more fine-grained control over mocks, allowing you to provide different mocks to each function. It also does not limit using `:async` option as mocks are contained in each test function.
@@ -20,7 +21,7 @@ end
 
 ## Usage
 
-### `definject`
+### definject
 
 `definject` transforms a function to accept a map where dependent functions can be injected.
 
@@ -61,7 +62,8 @@ test "send_welcome_email" do
 end
 ```
 
-### `mock`
+### mock
+
 If you don't need pattern matching in mock function, `mock/1` can be used to reduce boilerplates.
 
 ```elixir
@@ -80,7 +82,7 @@ end
 
 Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end` when expanded.
 
-### `strict: false`
+### strict: false
 
 `definject` raises if the passed map includes a function that's not called within the injected function.
 You can disable this by adding `strict: false` option.
@@ -94,7 +96,6 @@ test "send_welcome_email with strict: false" do
   })
 end
 ```
-
 
 ## License
 
