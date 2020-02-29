@@ -26,7 +26,7 @@ end
 `definject` transforms a function to accept a map where dependent functions can be injected.
 
 ```elixir
-use Inject
+import DefInject
 
 definject send_welcome_email(user_id) do
   %{email: email} = Repo.get(User, user_id)

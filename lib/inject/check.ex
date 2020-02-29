@@ -1,4 +1,4 @@
-defmodule Inject.Check do
+defmodule DefInject.Check do
   @moduledoc false
   @uninjectable [:erlang, Kernel, Macro, Module, Access]
 

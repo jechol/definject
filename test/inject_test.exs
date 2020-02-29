@@ -1,6 +1,6 @@
 defmodule InjectTest do
   use ExUnit.Case, async: true
-  use Inject
+  import DefInject
 
   describe "definject use cases" do
     defmodule Foo do
