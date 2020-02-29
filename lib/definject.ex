@@ -73,21 +73,7 @@ defmodule Definject do
 
   Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end` when expanded.
   """
-  defmacro mock({:%{}, _, mocks}) do
-    mocks =
-      mocks
-      |> Enum.map(fn {k, v} ->
-        {:&, _, [capture]} = k
-        {:/, _, [mf, a]} = capture
-        {mf, _, []} = mf
-        {:., _, [m, f]} = mf
-
-        capture = Impl.function_capture(m, f, a)
-        const_fn = {:fn, [], [{:->, [], [Macro.generate_arguments(a, __MODULE__), v]}]}
-
-        {capture, const_fn}
-      end)
-
-    {:%{}, [], mocks}
+  defmacro mock({:%{}, context, mocks}) do
+    {:%{}, context, mocks |> Enum.map(&Impl.surround_by_fn/1)}
   end
 end

@@ -1,6 +1,6 @@
 defmodule Definject.Check do
   @moduledoc false
-  @uninjectable [:erlang, Kernel, Macro, Module, Access]
+  @uninjectable Application.get_env(:definject, :uninjectable, [])
 
   def validate_deps(used_captures, %{} = deps) do
     used_captures = used_captures |> Enum.sort() |> Enum.uniq()

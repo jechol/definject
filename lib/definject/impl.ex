@@ -1,6 +1,6 @@
 defmodule Definject.Impl do
   @moduledoc false
-  @uninjectable [:erlang, Kernel, Macro, Module, Access]
+  @uninjectable Application.get_env(:definject, :uninjectable, [])
 
   @doc false
   def inject_function(%{head: head, body: body, env: %Macro.Env{} = env}) do
@@ -81,7 +81,22 @@ defmodule Definject.Impl do
     %{ast: ast, captures: []}
   end
 
-  def function_capture(remote_mod, name, arity) do
+  def surround_by_fn({{:&, _, [capture]}, v}) do
+    {:/, _, [mf, a]} = capture
+    {mf, _, []} = mf
+    {:., _, [m, f]} = mf
+
+    capture = function_capture(m, f, a)
+    const_fn = {:fn, [], [{:->, [], [Macro.generate_arguments(a, __MODULE__), v]}]}
+
+    {capture, const_fn}
+  end
+
+  def surround_by_fn({:strict, _} = orig) do
+    orig
+  end
+
+  defp function_capture(remote_mod, name, arity) do
     mf = {{:., [], [remote_mod, name]}, [no_parens: true], []}
     mfa = {:/, [], [mf, arity]}
     {:&, [], [mfa]}
