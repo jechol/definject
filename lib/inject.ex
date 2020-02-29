@@ -1,8 +1,13 @@
 defmodule Inject do
-  @moduledoc """
+  @uninjectable [:erlang, Kernel, Macro, Module, Access]
 
-  ### `definject`
+  defmacro __using__(_opts) do
+    quote do
+      import Inject, only: [definject: 2, mock: 1]
+    end
+  end
 
+  @doc """
   `definject` transforms a function to accept a map where dependent functions can be injected.
 
       use Inject
@@ -36,26 +41,6 @@ defmodule Inject do
         assert_receive :email_sent
       end
 
-  ### `mock`
-
-  If you don't need pattern matching in mock function, `mock/1` can be used to reduce boilerplates.
-
-      test "send_welcome_email with mock/1" do
-        Accounts.send_welcome_email(
-          100,
-          mock(%{
-            &Repo.get/2 => %User{email: "mr.jechol@gmail.com"},
-            &Mailer.send/1 => Process.send(self(), :email_sent)
-          })
-        )
-
-        assert_receive :email_sent
-      end
-
-  Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end` when expanded.
-
-  ### `strict: false`
-
   `definject` raises if the passed map includes a function that's not called within the injected function.
   You can disable this by adding `strict: false` option.
 
@@ -67,14 +52,6 @@ defmodule Inject do
         })
       end
   """
-  @uninjectable [:erlang, Kernel, Macro, Module, Access]
-
-  defmacro __using__(_opts) do
-    quote do
-      import Inject, only: [definject: 2, mock: 1]
-    end
-  end
-
   defmacro definject(head, do: body) do
     if Application.get_env(:definject, :enabled?, Mix.env() == :test) do
       inject_function(%{head: head, body: body, env: __CALLER__})
@@ -165,8 +142,23 @@ defmodule Inject do
     %{ast: ast, mfas: []}
   end
 
-  #
+  @doc """
+  If you don't need pattern matching in mock function, `mock/1` can be used to reduce boilerplates.
 
+      test "send_welcome_email with mock/1" do
+        Accounts.send_welcome_email(
+          100,
+          mock(%{
+            &Repo.get/2 => %User{email: "mr.jechol@gmail.com"},
+            &Mailer.send/1 => Process.send(self(), :email_sent)
+          })
+        )
+
+        assert_receive :email_sent
+      end
+
+  Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end` when expanded.
+  """
   defmacro mock({:%{}, _, mocks}) do
     mocks =
       mocks
