@@ -29,18 +29,24 @@ defmodule Definject.Impl do
         end)
         |> Macro.postwalk([], fn ast, captures ->
           %{ast: ast, captures: new_captures} = inject_remote_call(ast)
-
-          # inject_remote_call(ast |> IO.inspect(label: "before")) |> IO.inspect(label: "after")
-
           {ast, new_captures ++ captures}
         end)
+
+      {nest_removed_body, nested_captures} =
+        injected_body
+        |> Macro.postwalk([], fn ast, nested_captures ->
+          %{ast: ast, nested_captures: new_nested_captures} = remove_nested_capture(ast)
+          {ast, new_nested_captures ++ nested_captures}
+        end)
+
+      nest_removed_captures = captures -- nested_captures
 
       # `quote` with dynamic `context` requires Elixir 1.10+
       quote do
         def unquote(injected_head) do
-          Definject.Check.validate_deps(unquote(captures), deps)
+          Definject.Check.validate_deps(unquote(nest_removed_captures), deps)
 
-          unquote(injected_body)
+          unquote(nest_removed_body)
         end
       end
     end
@@ -71,16 +77,32 @@ defmodule Definject.Impl do
   @doc false
 
   #
-  # Not feasible to use this function
-  # because`no_parens: true` is introduced in Elixir 1.10.
+  # Not feasible to use this function because`no_parens: true` is only available from Elixir 1.10.
+  # If we can require Elixir 1.10, `remove_nested_capture` is not necessary.
   #
   # def inject_remote_call({{:., _, [_remote_mod, _name]}, [{:no_parens, true} | _], _args} = ast) do
   #   # nested captures via & are not allowed
   #   %{ast: ast, captures: []}
   # end
 
-  # Revert &(deps[&A.b/1] || &A.b/1.(1)) to capture &A.b/1
-  def inject_remote_call(
+  def inject_remote_call({{:., _, [remote_mod, name]}, _, args} = _ast)
+      when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
+    arity = Enum.count(args)
+    capture = function_capture(remote_mod, name, arity)
+
+    ast =
+      quote do
+        (deps[unquote(capture)] || unquote(capture)).(unquote_splicing(args))
+      end
+
+    %{ast: ast, captures: [capture]}
+  end
+
+  def inject_remote_call(ast) do
+    %{ast: ast, captures: []}
+  end
+
+  def remove_nested_capture(
         {:&, _,
          [
            {:/, _,
@@ -101,27 +123,19 @@ defmodule Definject.Impl do
             ]}
          ]}
       ) do
+    capture = function_capture(remote_mod, name, arity)
+
     %{
-      ast: function_capture(remote_mod, name, arity) |> IO.inspect(label: "revereted"),
-      captures: []
+      ast: capture,
+      nested_captures: [capture]
     }
   end
 
-  def inject_remote_call({{:., _, [remote_mod, name]}, _, args} = _ast)
-      when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
-    arity = Enum.count(args)
-    capture = function_capture(remote_mod, name, arity)
-
-    ast =
-      quote do
-        (deps[unquote(capture)] || unquote(capture)).(unquote_splicing(args))
-      end
-
-    %{ast: ast, captures: [capture]}
-  end
-
-  def inject_remote_call(ast) do
-    %{ast: ast, captures: []}
+  def remove_nested_capture(ast) do
+    %{
+      ast: ast,
+      nested_captures: []
+    }
   end
 
   def surround_by_fn({{:&, _, [capture]}, v}) do
