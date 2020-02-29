@@ -22,7 +22,7 @@ defmodule Definject do
         |> (deps[{Mailer, :send, 1}] || &Mailer.send/1).()
       end
 
-  Then we can inject mock functions in tests.
+  Then you can inject mock functions in tests.
 
       test "send_welcome_email" do
         Accounts.send_welcome_email(100, %{

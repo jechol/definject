@@ -47,7 +47,7 @@ def send_welcome_email(user_id, deps \\ %{}) do
 end
 ```
 
-Then we can inject mock functions in tests.
+Then you can inject mock functions in tests.
 
 ```elixir
 test "send_welcome_email" do

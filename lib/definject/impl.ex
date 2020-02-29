@@ -81,9 +81,4 @@ defmodule Definject.Impl do
   def inject_remote_call(ast) do
     %{ast: ast, mfas: []}
   end
-
-  @doc false
-  defmacro make_const_function(arity, expr, %Macro.Env{module: context}) do
-    {:fn, [], [{:->, [], [Macro.generate_arguments(arity, context), expr]}]}
-  end
 end
