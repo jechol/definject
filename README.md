@@ -62,6 +62,19 @@ test "send_welcome_email" do
 end
 ```
 
+`definject` raises if the passed map includes a function that's not called within the injected function.
+You can disable this by adding `strict: false` option.
+
+```elixir
+test "send_welcome_email with strict: false" do
+  Accounts.send_welcome_email(100, %{
+    {Repo, :get, 2} => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
+    {Repo, :all, 1} => fn _ -> [%User{email: "mr.jechol@gmail.com"}] end, # Unused
+    :strict => false,
+  })
+end
+```
+
 ### mock
 
 If you don't need pattern matching in mock function, `mock/1` can be used to reduce boilerplates.
@@ -81,21 +94,6 @@ end
 ```
 
 Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end` when expanded.
-
-### strict: false
-
-`definject` raises if the passed map includes a function that's not called within the injected function.
-You can disable this by adding `strict: false` option.
-
-```elixir
-test "send_welcome_email with strict: false" do
-  Accounts.send_welcome_email(100, %{
-    {Repo, :get, 2} => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
-    {Repo, :all, 1} => fn _ -> [%User{email: "mr.jechol@gmail.com"}] end,
-    :strict => false,
-  })
-end
-```
 
 ## License
 
