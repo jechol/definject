@@ -16,7 +16,7 @@ defmodule Definject.Impl do
         raise "Cannot import/require/use inside definject. Move it to module level."
       end
     else
-      {injected_body, mfas} =
+      {injected_body, captures} =
         body
         |> Macro.prewalk(fn ast ->
           if expandable?(ast) do
@@ -25,16 +25,16 @@ defmodule Definject.Impl do
             ast
           end
         end)
-        |> Macro.postwalk([], fn ast, mfas ->
-          %{ast: ast, mfas: new_mfas} = inject_remote_call(ast)
-          {ast, new_mfas ++ mfas}
+        |> Macro.postwalk([], fn ast, captures ->
+          %{ast: ast, captures: new_captures} = inject_remote_call(ast)
+          {ast, new_captures ++ captures}
         end)
 
       # `quote` with dynamic `context` requires Elixir 1.10+
       quote do
         def unquote(injected_head) do
-          Definject.Check.raise_if_uninjectable_deps_injected(deps)
-          Definject.Check.raise_if_unknown_deps_found(unquote(Macro.escape(mfas)), deps)
+          Definject.Check.validate_deps(unquote(captures), deps)
+
           unquote(injected_body)
         end
       end
@@ -64,21 +64,26 @@ defmodule Definject.Impl do
   end
 
   @doc false
-  def inject_remote_call({{:., _, [remote_mod, name]} = func, _, args})
+  def inject_remote_call({{:., _, [remote_mod, name]}, _, args})
       when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
     arity = Enum.count(args)
-    capture = {func, [no_parens: true], []}
+    capture = function_capture(remote_mod, name, arity)
 
     ast =
       quote do
-        (deps[{unquote(remote_mod), unquote(name), unquote(arity)}] ||
-           (&(unquote(capture) / unquote(arity)))).(unquote_splicing(args))
+        (deps[unquote(capture)] || unquote(capture)).(unquote_splicing(args))
       end
 
-    %{ast: ast, mfas: [{remote_mod, name, arity}]}
+    %{ast: ast, captures: [capture]}
   end
 
   def inject_remote_call(ast) do
-    %{ast: ast, mfas: []}
+    %{ast: ast, captures: []}
+  end
+
+  defp function_capture(remote_mod, name, arity) do
+    mf = {{:., [], [remote_mod, name]}, [no_parens: true], []}
+    mfa = {:/, [], [mf, arity]}
+    {:&, [], [mfa]}
   end
 end

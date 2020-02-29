@@ -47,17 +47,17 @@ defmodule InjectImplTest do
 
     expected_ast =
       quote do
-        (deps[{Math, :pow, 2}] || (&Math.pow/2)).(2, x)
+        (deps[&Math.pow/2] || (&Math.pow/2)).(2, x)
       end
 
-    expected = %{
-      ast: expected_ast,
-      mfas: [{{:__aliases__, [alias: false], [:Math]}, :pow, 2}]
-    }
+    expected_captures =
+      quote do
+        [&Math.pow/2]
+      end
 
-    %{ast: actual_ast, mfas: actual_mfas} = Impl.inject_remote_call(remote_call)
-    assert Macro.to_string(actual_ast) == Macro.to_string(expected.ast)
-    assert actual_mfas == expected.mfas
+    %{ast: actual_ast, captures: actual_captures} = Impl.inject_remote_call(remote_call)
+    assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
+    assert Macro.to_string(actual_captures) == Macro.to_string(expected_captures)
   end
 
   describe "import in definject" do
@@ -94,12 +94,11 @@ defmodule InjectImplTest do
       expected =
         quote do
           def add(a, b, %{} = deps \\ %{}) do
-            Definject.Check.raise_if_uninjectable_deps_injected(deps)
-            Definject.Check.raise_if_unknown_deps_found([{Calc, :sum, 2}], deps)
+            Definject.Check.validate_deps([&Calc.sum/2], deps)
 
             case a do
               false ->
-                (deps[{Calc, :sum, 2}] || (&Calc.sum/2)).(a, b)
+                (deps[&Calc.sum/2] || (&Calc.sum/2)).(a, b)
 
               true ->
                 import Calc

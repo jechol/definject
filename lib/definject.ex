@@ -42,7 +42,7 @@ defmodule Definject do
         Accounts.send_welcome_email(100, %{
           {Repo, :get, 2} => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
           {Repo, :all, 1} => fn _ -> [%User{email: "mr.jechol@gmail.com"}] end, # Unused
-          :strict => false,
+          strict: false,
         })
       end
   """

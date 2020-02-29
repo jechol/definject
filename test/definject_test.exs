@@ -16,7 +16,7 @@ defmodule InjectTest do
           :mod -> __MODULE__.quack()
           :remote -> Enum.count([1, 2])
           :import -> first([10, 20])
-          :pipe -> "1" |> String.to_integer() |> Kernel.+(1)
+          :pipe -> "1" |> Function.identity() |> String.to_integer()
           :macro -> Calc.macro_sum(10, 20)
         end
       end
@@ -27,30 +27,30 @@ defmodule InjectTest do
       assert Foo.bar(:mod) == :arity_0_quack
       assert Foo.bar(:remote) == 2
       assert Foo.bar(:import) == 10
-      assert Foo.bar(:pipe) == 2
+      assert Foo.bar(:pipe) == 1
       assert Foo.bar(:macro) == 30
     end
 
     test "injected works" do
-      assert Foo.bar(:mod, %{{Foo, :quack, 0} => fn -> :injected end}) == :injected
+      assert Foo.bar(:mod, %{&Foo.quack/0 => fn -> :injected end}) == :injected
 
-      assert Foo.bar(:mod, %{{Foo, :quack, 1} => fn -> :injected end, strict: false}) ==
+      assert Foo.bar(:mod, %{&Foo.quack/1 => fn -> :injected end, strict: false}) ==
                :arity_0_quack
 
-      assert Foo.bar(:remote, %{{Enum, :count, 1} => fn _ -> 9999 end}) == 9999
-      assert Foo.bar(:pipe, %{{String, :to_integer, 1} => fn _ -> 100 end}) == 101
+      assert Foo.bar(:remote, %{&Enum.count/1 => fn _ -> 9999 end}) == 9999
+      assert Foo.bar(:pipe, %{&Function.identity/1 => fn _ -> "100" end}) == 100
 
       assert_raise RuntimeError, ~r/Uninjectable/, fn ->
-        Foo.bar(:pipe, %{{Kernel, :+, 2} => fn _, _ -> 999 end})
+        Foo.bar(:pipe, %{&Kernel.+/2 => fn _, _ -> 999 end})
       end
 
-      assert_raise RuntimeError, ~r/Unexpected/, fn ->
-        Foo.bar(:pipe, %{{Hello, :world, 0} => fn -> :wrong_key end})
+      assert_raise RuntimeError, ~r/Unused/, fn ->
+        Foo.bar(:pipe, %{&Base.encode16/1 => fn -> :wrong_key end})
       end
 
-      assert Foo.bar(:pipe, %{{Hello, :world, 0} => fn -> :wrong_key end, strict: false}) == 2
+      assert Foo.bar(:pipe, %{&Base.encode16/1 => fn -> :wrong_key end, strict: false}) == 1
 
-      assert Foo.bar(:macro, %{{Calc, :sum, 2} => fn _, _ -> 999 end, strict: false}) == 30
+      assert Foo.bar(:macro, %{&Calc.sum/2 => fn _, _ -> 999 end, strict: false}) == 30
     end
   end
 

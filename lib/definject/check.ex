@@ -2,21 +2,25 @@ defmodule Definject.Check do
   @moduledoc false
   @uninjectable [:erlang, Kernel, Macro, Module, Access]
 
-  def raise_if_uninjectable_deps_injected(%{} = deps) do
-    for {{remote_mod, _name, _arity}, _} <- Map.drop(deps, [:strict]) do
-      if remote_mod in unquote(@uninjectable) do
-        raise "Uninjectable module injected #{inspect(remote_mod)}"
-      end
-    end
-  end
+  def validate_deps(valid_captures, %{} = deps) do
+    valid_captures = valid_captures |> Enum.sort() |> Enum.uniq()
 
-  def raise_if_unknown_deps_found(mfas, %{} = deps) when is_list(mfas) do
-    mfas = mfas |> Enum.sort() |> Enum.uniq()
+    for {capture, _} <- Map.drop(deps, [:strict]) do
+      {:type, type} = Function.info(capture, :type)
 
-    if Map.get(deps, :strict, true) do
-      for {key, _} <- Map.drop(deps, [:strict]) do
-        unless key in mfas do
-          raise "Unexpected injection #{inspect(key)}"
+      if type == :local do
+        raise "Local function cannot be injected #{inspect(capture)}"
+      else
+        {:module, remote_mod} = Function.info(capture, :module)
+
+        if remote_mod in unquote(@uninjectable) do
+          raise "Uninjectable module #{inspect(remote_mod)} for #{inspect(capture)}"
+        else
+          if Map.get(deps, :strict, true) do
+            unless capture in valid_captures do
+              raise "Unused injection found #{inspect(capture)}. Add `strict: false` to disable this."
+            end
+          end
         end
       end
     end
