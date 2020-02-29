@@ -31,7 +31,7 @@ import Definject
 definject send_welcome_email(user_id) do
   %{email: email} = Repo.get(User, user_id)
 
-  Email.welcome(email)
+  welcome_email(to: email)
   |> Mailer.send()
 end
 ```
@@ -42,12 +42,14 @@ is expanded into
 def send_welcome_email(user_id, deps \\ %{}) do
   %{email: email} = (deps[&Repo.get/2] || &Repo.get/2).(User, user_id)
 
-  (deps[&Email.welcome/1] || &Email.welcome/1).(email)
+  welcome_email(to: email)
   |> (deps[&Mailer.send/1] || &Mailer.send/1).()
 end
 ```
 
-Then you can inject mock functions in tests.
+Note that local function call `welcome_email/1` is not expanded.
+
+Now, you can inject mock functions in tests.
 
 ```elixir
 test "send_welcome_email" do

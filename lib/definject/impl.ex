@@ -4,7 +4,6 @@ defmodule Definject.Impl do
                   PlaceholderToSuppressCompileWarning
                 ])
 
-  @doc false
   def inject_function(%{head: head, body: body, env: %Macro.Env{} = env}) do
     injected_head = head_with_deps(%{head: head})
 
@@ -53,7 +52,6 @@ defmodule Definject.Impl do
   defp modifies_env?({name, _, _}) when name in [:import, :require, :use], do: true
   defp modifies_env?(_), do: false
 
-  @doc false
   def head_with_deps(%{head: {name, meta, context}}) when not is_list(context) do
     # Normalize function head.
     # def some do: nil end   ->   def some(), do: nil end
@@ -69,16 +67,15 @@ defmodule Definject.Impl do
     {name, meta, params ++ [deps]}
   end
 
-  @doc false
-
   #
-  # Not feasible to use this function because`no_parens: true` is only available from Elixir 1.10.
-  # If we can require Elixir 1.10, `mark_remote_capture` is not necessary.
+  # This function is not feasible because`no_parens: true` is only available from Elixir 1.10.
+  # When we can require Elixir 1.10, uncomment below and delete `mark_remote_capture`.
   #
   # def inject_remote_call({{:., _, [_remote_mod, _name]}, [{:no_parens, true} | _], _args} = ast) do
   #   # nested captures via & are not allowed
   #   %{ast: ast, captures: []}
   # end
+  #
 
   def inject_remote_call(
         {{:., _, [_remote_mod, _name]}, [{:remote_capture, true} | _], _args} = ast
