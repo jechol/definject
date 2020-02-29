@@ -1,6 +1,8 @@
 defmodule Definject.Impl do
   @moduledoc false
-  @uninjectable Application.get_env(:definject, :uninjectable, [])
+  @uninjectable Application.get_env(:definject, :uninjectable, [
+                  PlaceholderToSuppressCompileWarning
+                ])
 
   @doc false
   def inject_function(%{head: head, body: body, env: %Macro.Env{} = env}) do
