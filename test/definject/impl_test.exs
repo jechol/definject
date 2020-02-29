@@ -39,25 +39,47 @@ defmodule InjectImplTest do
     end
   end
 
-  test "inject_remote_call" do
-    remote_call =
-      quote do
-        Math.pow(2, x)
-      end
+  describe "inject_remote_call" do
+    test "when remote call" do
+      remote_call =
+        quote do
+          Math.pow(2, x)
+        end
 
-    expected_ast =
-      quote do
-        (deps[&Math.pow/2] || (&Math.pow/2)).(2, x)
-      end
+      expected_ast =
+        quote do
+          (deps[&Math.pow/2] || (&Math.pow/2)).(2, x)
+        end
 
-    expected_captures =
-      quote do
-        [&Math.pow/2]
-      end
+      expected_captures =
+        quote do
+          [&Math.pow/2]
+        end
 
-    %{ast: actual_ast, captures: actual_captures} = Impl.inject_remote_call(remote_call)
-    assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
-    assert Macro.to_string(actual_captures) == Macro.to_string(expected_captures)
+      %{ast: actual_ast, captures: actual_captures} = Impl.inject_remote_call(remote_call)
+      assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
+      assert Macro.to_string(actual_captures) == Macro.to_string(expected_captures)
+    end
+
+    test "when remote capture" do
+      {:&, _,
+       [
+         {:/, _,
+          [
+            {{:., _, [_remote_mod, :pow]}, [{:no_parens, true} | _], []} = remote_call_wo_parens,
+            2
+          ]}
+       ]} =
+        quote do
+          &Math.pow/2
+        end
+
+      %{ast: actual_ast, captures: actual_captures} =
+        Impl.inject_remote_call(remote_call_wo_parens)
+
+      assert Macro.to_string(actual_ast) == "Math.pow"
+      assert actual_captures == []
+    end
   end
 
   describe "import in definject" do

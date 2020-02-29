@@ -21,6 +21,7 @@ defmodule InjectTest do
           :remote -> Enum.count([1, 2])
           :pipe -> "1" |> Foo.id()
           :macro -> Calc.macro_sum(10, 20)
+          :capture -> &Calc.sum/2
           :kernel_plus -> Kernel.+(1, 10)
           :string_to_atom -> "foobar" |> String.to_atom()
           :string_to_integer -> "100" |> String.to_integer()
@@ -37,6 +38,7 @@ defmodule InjectTest do
       assert Foo.bar(:remote) == 2
       assert Foo.bar(:pipe) == "1"
       assert Foo.bar(:macro) == 30
+      assert Foo.bar(:capture).(20, 40) == 60
       assert Foo.bar(:kernel_plus) == 11
       assert Foo.bar(:string_to_atom) == :foobar
       assert Foo.bar(:string_to_integer) == 100
@@ -54,6 +56,12 @@ defmodule InjectTest do
       assert Foo.bar(:kernel_plus, %{&Kernel.+/2 => fn _, _ -> 999 end}) == 999
       assert Foo.bar(:string_to_atom, %{&String.to_atom/1 => fn _ -> :injected end}) == :injected
       assert Foo.bar(:string_to_integer, %{&String.to_integer/1 => fn _ -> 9090 end}) == 9090
+    end
+
+    test "capture" do
+      assert_raise RuntimeError, ~r/Unused/, fn ->
+        Foo.bar(:capture, mock(%{&Calc.sum/2 => 100}))
+      end
     end
 
     test "unused" do

@@ -29,6 +29,9 @@ defmodule Definject.Impl do
         end)
         |> Macro.postwalk([], fn ast, captures ->
           %{ast: ast, captures: new_captures} = inject_remote_call(ast)
+
+          # inject_remote_call(ast |> IO.inspect(label: "before")) |> IO.inspect(label: "after")
+
           {ast, new_captures ++ captures}
         end)
 
@@ -66,6 +69,11 @@ defmodule Definject.Impl do
   end
 
   @doc false
+  def inject_remote_call({{:., _, [_remote_mod, _name]}, [{:no_parens, true} | _], _args} = ast) do
+    # nested captures via & are not allowed
+    %{ast: ast, captures: []}
+  end
+
   def inject_remote_call({{:., _, [remote_mod, name]}, _, args})
       when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
     arity = Enum.count(args)
