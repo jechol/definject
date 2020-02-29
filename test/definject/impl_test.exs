@@ -66,7 +66,7 @@ defmodule InjectImplTest do
        [
          {:/, _,
           [
-            {{:., _, [_remote_mod, :pow]}, [{:no_parens, true} | _], []} = remote_call_wo_parens,
+            {{:., _, [_remote_mod, :pow]}, _, []} = remote_call_wo_parens,
             2
           ]}
        ]} =

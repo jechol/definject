@@ -69,12 +69,45 @@ defmodule Definject.Impl do
   end
 
   @doc false
-  def inject_remote_call({{:., _, [_remote_mod, _name]}, [{:no_parens, true} | _], _args} = ast) do
-    # nested captures via & are not allowed
-    %{ast: ast, captures: []}
+
+  #
+  # Not feasible to use this function
+  # because`no_parens: true` is introduced in Elixir 1.10.
+  #
+  # def inject_remote_call({{:., _, [_remote_mod, _name]}, [{:no_parens, true} | _], _args} = ast) do
+  #   # nested captures via & are not allowed
+  #   %{ast: ast, captures: []}
+  # end
+
+  # Revert &(deps[&A.b/1] || &A.b/1.(1)) to capture &A.b/1
+  def inject_remote_call(
+        {:&, _,
+         [
+           {:/, _,
+            [
+              {{:., _,
+                [
+                  {:||, _,
+                   [
+                     {{:., _, [Access, :get]}, _,
+                      [
+                        {:deps, _, _},
+                        {:&, _, [{:/, _, [{{:., _, [remote_mod, name]}, _, []}, 0]}]} = capture
+                      ]},
+                     capture
+                   ]}
+                ]}, _, []},
+              arity
+            ]}
+         ]}
+      ) do
+    %{
+      ast: function_capture(remote_mod, name, arity) |> IO.inspect(label: "revereted"),
+      captures: []
+    }
   end
 
-  def inject_remote_call({{:., _, [remote_mod, name]}, _, args})
+  def inject_remote_call({{:., _, [remote_mod, name]}, _, args} = _ast)
       when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
     arity = Enum.count(args)
     capture = function_capture(remote_mod, name, arity)
@@ -107,7 +140,7 @@ defmodule Definject.Impl do
   end
 
   defp function_capture(remote_mod, name, arity) do
-    mf = {{:., [], [remote_mod, name]}, [no_parens: true], []}
+    mf = {{:., [], [remote_mod, name]}, [], []}
     mfa = {:/, [], [mf, arity]}
     {:&, [], [mfa]}
   end
