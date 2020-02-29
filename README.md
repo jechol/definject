@@ -15,7 +15,7 @@ in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:definject, "~> 0.3.3"}]
+  [{:definject, "~> 0.3.4"}]
 end
 ```
 
@@ -47,7 +47,7 @@ def send_welcome_email(user_id, deps \\ %{}) do
 end
 ```
 
-Note that local function call `welcome_email/1` is not expanded.
+Note that local function calls like `welcome_email(to: email)` are not expanded unless it is prepended with `__MODULE__`.
 
 Now, you can inject mock functions in tests.
 

@@ -22,7 +22,7 @@ defmodule Definject do
         |> (deps[&Mailer.send/1] || &Mailer.send/1).()
       end
 
-  Note that local function call `welcome_email/1` is not expanded.
+  Note that local function calls like `welcome_email(to: email)` are not expanded unless it is prepended with `__MODULE__`.
 
   Now, you can inject mock functions in tests.
 
