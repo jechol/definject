@@ -10,13 +10,15 @@ defmodule InjectTest do
       def quack(), do: :arity_0_quack
       def quack(_), do: :arity_1_quack
 
+      def id(v), do: v
+
       definject bar(type) do
         case type do
           :local -> quack()
           :mod -> __MODULE__.quack()
           :remote -> Enum.count([1, 2])
           :import -> first([10, 20])
-          :pipe -> "1" |> Function.identity() |> String.to_integer()
+          :pipe -> "1" |> Foo.id() |> String.to_integer()
           :macro -> Calc.macro_sum(10, 20)
         end
       end
@@ -38,7 +40,7 @@ defmodule InjectTest do
                :arity_0_quack
 
       assert Foo.bar(:remote, %{&Enum.count/1 => fn _ -> 9999 end}) == 9999
-      assert Foo.bar(:pipe, %{&Function.identity/1 => fn _ -> "100" end}) == 100
+      assert Foo.bar(:pipe, %{&Foo.id/1 => fn _ -> "100" end}) == 100
 
       assert_raise RuntimeError, ~r/Uninjectable/, fn ->
         Foo.bar(:pipe, %{&Kernel.+/2 => fn _, _ -> 999 end})

@@ -18,7 +18,7 @@ defmodule Definject.Check do
   end
 
   defp confirm_type_is_external(capture) do
-    case Function.info(capture, :type) do
+    case :erlang.fun_info(capture, :type) do
       {:type, :local} ->
         raise "Local function cannot be injected #{inspect(capture)}"
 
@@ -28,7 +28,7 @@ defmodule Definject.Check do
   end
 
   defp confirm_module_is_injectable(capture) do
-    case Function.info(capture, :module) do
+    case :erlang.fun_info(capture, :module) do
       {:module, module} when module in @uninjectable ->
         raise "Uninjectable module #{inspect(module)} for #{inspect(capture)}"
 
