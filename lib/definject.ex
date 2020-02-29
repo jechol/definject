@@ -1,4 +1,4 @@
-defmodule DefInject do
+defmodule Definject do
   @uninjectable [:erlang, Kernel, Macro, Module, Access]
 
   defmacro __using__(_opts) do
@@ -10,7 +10,7 @@ defmodule DefInject do
   @doc """
   `definject` transforms a function to accept a map where dependent functions can be injected.
 
-      import DefInject
+      import Definject
 
       definject send_welcome_email(user_id) do
         %{email: email} = Repo.get(User, user_id)
@@ -93,8 +93,8 @@ defmodule DefInject do
       # `quote` with dynamic `context` requires Elixir 1.10+
       quote do
         def unquote(injected_head) do
-          DefInject.Check.raise_if_uninjectable_deps_injected(deps)
-          DefInject.Check.raise_if_unknown_deps_found(unquote(Macro.escape(mfas)), deps)
+          Definject.Check.raise_if_uninjectable_deps_injected(deps)
+          Definject.Check.raise_if_unknown_deps_found(unquote(Macro.escape(mfas)), deps)
           unquote(injected_body)
         end
       end
