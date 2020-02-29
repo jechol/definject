@@ -1,5 +1,4 @@
 defmodule Definject do
-  @uninjectable [:erlang, Kernel, Macro, Module, Access]
   alias Definject.Impl
 
   @doc """
@@ -83,17 +82,12 @@ defmodule Definject do
         {mf, _, []} = mf
         {:., _, [m, f]} = mf
 
-        quote do
-          {{unquote(m), unquote(f), unquote(a)},
-           unquote(__MODULE__).make_const_function(unquote(a), unquote(v), unquote(__CALLER__))}
-        end
+        mfa = {:{}, [], [m, f, a]}
+        const_fn = {:fn, [], [{:->, [], [Macro.generate_arguments(a, __MODULE__), v]}]}
+
+        {mfa, const_fn}
       end)
 
     {:%{}, [], mocks}
-  end
-
-  @doc false
-  defmacro make_const_function(arity, expr, %Macro.Env{module: context}) do
-    {:fn, [], [{:->, [], [Macro.generate_arguments(arity, context), expr]}]}
   end
 end
