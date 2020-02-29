@@ -1,4 +1,5 @@
 defmodule Definject.Impl do
+  @moduledoc false
   @uninjectable [:erlang, Kernel, Macro, Module, Access]
 
   @doc false
