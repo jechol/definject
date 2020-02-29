@@ -16,18 +16,18 @@ defmodule Definject do
   is expanded into
 
       def send_welcome_email(user_id, deps \\\\ %{}) do
-        %{email: email} = (deps[{Repo, :get, 2}] || &Repo.get/2).(User, user_id)
+        %{email: email} = (deps[&Repo.get/2] || &Repo.get/2).(User, user_id)
 
-        (deps[{Email, :welcome, 1}] || &Email.welcome/1).(email)
-        |> (deps[{Mailer, :send, 1}] || &Mailer.send/1).()
+        (deps[&Email.welcome/1] || &Email.welcome/1).(email)
+        |> (deps[&Mailer.send/1] || &Mailer.send/1).()
       end
 
   Then you can inject mock functions in tests.
 
       test "send_welcome_email" do
         Accounts.send_welcome_email(100, %{
-          {Repo, :get, 2} => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
-          {Mailer, :send, 1} => fn %Email{to: "mr.jechol@gmail.com", subject: "Welcome"} ->
+          &Repo.get/2 => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
+          &Mailer.send/1 => fn %Email{to: "mr.jechol@gmail.com", subject: "Welcome"} ->
             Process.send(self(), :email_sent)
           end
         })
@@ -40,8 +40,8 @@ defmodule Definject do
 
       test "send_welcome_email with strict: false" do
         Accounts.send_welcome_email(100, %{
-          {Repo, :get, 2} => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
-          {Repo, :all, 1} => fn _ -> [%User{email: "mr.jechol@gmail.com"}] end, # Unused
+          &Repo.get/2 => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
+          &Repo.all/1 => fn _ -> [%User{email: "mr.jechol@gmail.com"}] end, # Unused
           strict: false,
         })
       end
@@ -82,10 +82,10 @@ defmodule Definject do
         {mf, _, []} = mf
         {:., _, [m, f]} = mf
 
-        mfa = {:{}, [], [m, f, a]}
+        capture = Impl.function_capture(m, f, a)
         const_fn = {:fn, [], [{:->, [], [Macro.generate_arguments(a, __MODULE__), v]}]}
 
-        {mfa, const_fn}
+        {capture, const_fn}
       end)
 
     {:%{}, [], mocks}

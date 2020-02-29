@@ -81,7 +81,7 @@ defmodule Definject.Impl do
     %{ast: ast, captures: []}
   end
 
-  defp function_capture(remote_mod, name, arity) do
+  def function_capture(remote_mod, name, arity) do
     mf = {{:., [], [remote_mod, name]}, [no_parens: true], []}
     mfa = {:/, [], [mf, arity]}
     {:&, [], [mfa]}

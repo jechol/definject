@@ -55,13 +55,15 @@ defmodule InjectTest do
   end
 
   test "mock" do
-    assert %{{A, :a, 0} => f1, {B, :b, 1} => f2} =
-             mock(%{&A.a/0 => (fn -> 100 end).(), &B.b/1 => 200})
+    m = mock(%{&Enum.count/1 => (fn -> 100 end).(), &Enum.map/2 => 200})
 
-    assert :erlang.fun_info(f1)[:arity] == 0
-    assert :erlang.fun_info(f2)[:arity] == 1
+    f1 = m[&Enum.count/1]
+    f2 = m[&Enum.map/2]
 
-    assert f1.() == 100
-    assert f2.(:not_used) == 200
+    assert :erlang.fun_info(f1)[:arity] == 1
+    assert :erlang.fun_info(f2)[:arity] == 2
+
+    assert f1.(nil) == 100
+    assert f2.(nil, nil) == 200
   end
 end

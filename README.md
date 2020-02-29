@@ -40,10 +40,10 @@ is expanded into
 
 ```elixir
 def send_welcome_email(user_id, deps \\ %{}) do
-  %{email: email} = (deps[{Repo, :get, 2}] || &Repo.get/2).(User, user_id)
+  %{email: email} = (deps[&Repo.get/2] || &Repo.get/2).(User, user_id)
 
-  (deps[{Email, :welcome, 1}] || &Email.welcome/1).(email)
-  |> (deps[{Mailer, :send, 1}] || &Mailer.send/1).()
+  (deps[&Email.welcome/1] || &Email.welcome/1).(email)
+  |> (deps[&Mailer.send/1] || &Mailer.send/1).()
 end
 ```
 
@@ -52,8 +52,8 @@ Then you can inject mock functions in tests.
 ```elixir
 test "send_welcome_email" do
   Accounts.send_welcome_email(100, %{
-    {Repo, :get, 2} => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
-    {Mailer, :send, 1} => fn %Email{to: "mr.jechol@gmail.com", subject: "Welcome"} ->
+    &Repo.get/2 => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
+    &Mailer.send/1 => fn %Email{to: "mr.jechol@gmail.com", subject: "Welcome"} ->
       Process.send(self(), :email_sent)
     end
   })
@@ -68,8 +68,8 @@ You can disable this by adding `strict: false` option.
 ```elixir
 test "send_welcome_email with strict: false" do
   Accounts.send_welcome_email(100, %{
-    {Repo, :get, 2} => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
-    {Repo, :all, 1} => fn _ -> [%User{email: "mr.jechol@gmail.com"}] end, # Unused
+    &Repo.get/2 => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
+    &Repo.all/1 => fn _ -> [%User{email: "mr.jechol@gmail.com"}] end, # Unused
     strict: false,
   })
 end
