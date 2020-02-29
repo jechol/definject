@@ -20,24 +20,12 @@ defmodule Definject.Impl do
     else
       {injected_body, captures} =
         body
-        |> Macro.prewalk(fn ast ->
-          if expandable?(ast) do
-            Macro.expand(ast, env)
-          else
-            ast
-          end
-        end)
-        |> Macro.postwalk([], fn ast, captures ->
-          %{ast: ast, captures: new_captures} = inject_remote_call(ast)
-          {ast, new_captures ++ captures}
-        end)
+        |> expand_macros_recursively(env)
+        |> inject_remote_calls_recursively()
 
       {nest_removed_body, nested_captures} =
         injected_body
-        |> Macro.postwalk([], fn ast, nested_captures ->
-          %{ast: ast, nested_captures: new_nested_captures} = remove_nested_capture(ast)
-          {ast, new_nested_captures ++ nested_captures}
-        end)
+        |> remove_nested_captures_recursively()
 
       nest_removed_captures = captures -- nested_captures
 
@@ -50,6 +38,33 @@ defmodule Definject.Impl do
         end
       end
     end
+  end
+
+  def expand_macros_recursively(body, env) do
+    body
+    |> Macro.prewalk(fn ast ->
+      if expandable?(ast) do
+        Macro.expand(ast, env)
+      else
+        ast
+      end
+    end)
+  end
+
+  def inject_remote_calls_recursively(body) do
+    body
+    |> Macro.postwalk([], fn ast, captures ->
+      %{ast: ast, captures: new_captures} = inject_remote_call(ast)
+      {ast, new_captures ++ captures}
+    end)
+  end
+
+  def remove_nested_captures_recursively(body) do
+    body
+    |> Macro.postwalk([], fn ast, nested_captures ->
+      %{ast: ast, nested_captures: new_nested_captures} = remove_nested_capture(ast)
+      {ast, new_nested_captures ++ nested_captures}
+    end)
   end
 
   defp expandable?({:@, _, _}), do: false
@@ -88,7 +103,7 @@ defmodule Definject.Impl do
   def inject_remote_call({{:., _, [remote_mod, name]}, _, args} = _ast)
       when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
     arity = Enum.count(args)
-    capture = function_capture(remote_mod, name, arity)
+    capture = function_capture_ast(remote_mod, name, arity)
 
     ast =
       quote do
@@ -114,20 +129,20 @@ defmodule Definject.Impl do
                      {{:., _, [Access, :get]}, _,
                       [
                         {:deps, _, _},
-                        {:&, _, [{:/, _, [{{:., _, [remote_mod, name]}, _, []}, 0]}]} = capture
+                        {:&, _,
+                         [{:/, _, [{{:., _, [remote_mod, name]}, _, []}, 0 = _wrong_arity]}]} =
+                          capture
                       ]},
                      capture
                    ]}
                 ]}, _, []},
-              arity
+              correct_arity
             ]}
          ]}
       ) do
-    capture = function_capture(remote_mod, name, arity)
-
     %{
-      ast: capture,
-      nested_captures: [capture]
+      ast: function_capture_ast(remote_mod, name, correct_arity),
+      nested_captures: [function_capture_ast(remote_mod, name, 0)]
     }
   end
 
@@ -143,7 +158,7 @@ defmodule Definject.Impl do
     {mf, _, []} = mf
     {:., _, [m, f]} = mf
 
-    capture = function_capture(m, f, a)
+    capture = function_capture_ast(m, f, a)
     const_fn = {:fn, [], [{:->, [], [Macro.generate_arguments(a, __MODULE__), v]}]}
 
     {capture, const_fn}
@@ -153,7 +168,7 @@ defmodule Definject.Impl do
     orig
   end
 
-  defp function_capture(remote_mod, name, arity) do
+  defp function_capture_ast(remote_mod, name, arity) do
     mf = {{:., [], [remote_mod, name]}, [], []}
     mfa = {:/, [], [mf, arity]}
     {:&, [], [mfa]}
