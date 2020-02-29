@@ -1,13 +1,13 @@
 defmodule Definject.MixProject do
   use Mix.Project
 
-  @version "0.3.4"
+  @version "0.4.0"
 
   def project do
     [
       app: :definject,
       version: @version,
-      elixir: "~> 1.5",
+      elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
