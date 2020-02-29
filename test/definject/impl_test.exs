@@ -39,52 +39,25 @@ defmodule InjectImplTest do
     end
   end
 
-  # test "when remote capture" do
-  #   {:&, _,
-  #    [
-  #      {:/, _,
-  #       [
-  #         {{:., _, [_remote_mod, :pow]}, _, []} = remote_call_wo_parens,
-  #         2
-  #       ]}
-  #    ]} =
-  #     quote do
-  #       &Math.pow/2
-  #     end
-
-  #   %{ast: actual_ast, captures: actual_captures} =
-  #     Impl.inject_remote_call(remote_call_wo_parens)
-
-  #   assert Macro.to_string(actual_ast) == "Math.pow"
-  #   assert actual_captures == []
-  # end
-
-  test "expand_macros_recursively" do
+  test "inject_remote_calls_recursively" do
     require Calc
 
     body =
       quote do
+        &Calc.sum/2
         Calc.macro_sum(10, 20)
-      end
-
-    expected_body =
-      quote do
-        import Calc
-        sum(10, 20)
-      end
-
-    actual_ast = Impl.expand_macros_recursively(body, __ENV__)
-    assert Macro.to_string(actual_ast) == Macro.to_string(expected_body)
-  end
-
-  test "inject_remote_calls_recursively" do
-    body =
-      quote do
         Math.pow(2, x)
       end
 
     expected_ast =
       quote do
+        &Calc.sum/2
+
+        (
+          import Calc
+          sum(10, 20)
+        )
+
         (deps[&Math.pow/2] || (&Math.pow/2)).(2, x)
       end
 
@@ -93,45 +66,9 @@ defmodule InjectImplTest do
         [&Math.pow/2]
       end
 
-    {actual_ast, actual_captures} = Impl.inject_remote_calls_recursively(body)
+    {actual_ast, actual_captures} = Impl.inject_remote_calls_recursively(body, __ENV__)
     assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
     assert Macro.to_string(actual_captures) == Macro.to_string(expected_captures)
-  end
-
-  test "remove_nested_captures_recursively" do
-    body =
-      quote do
-        a = &Calc.sum/2
-        b = String.to_integer("string")
-        c = Calc.sum()
-      end
-
-    # Elixir formatter makes it hard to build wrong AST with `quote`. So keep this as string.
-    expected_after_inject =
-      "(\n  a = &(deps[&Calc.sum/0] || &Calc.sum/0.() / 2)\n  b = deps[&String.to_integer/1] || &String.to_integer/1.(\"string\")\n  c = deps[&Calc.sum/0] || &Calc.sum/0.()\n)"
-
-    {actual_after_inject, captures} = Impl.inject_remote_calls_recursively(body)
-
-    assert Macro.to_string(actual_after_inject) == expected_after_inject
-
-    # Remove nested captures.
-
-    expected_after_remove_nest =
-      quote do
-        a = &Calc.sum/2
-        b = (deps[&String.to_integer/1] || (&String.to_integer/1)).("string")
-        c = (deps[&Calc.sum/0] || (&Calc.sum/0)).()
-      end
-
-    {actual_after_remove_nest, nested_captures} =
-      Impl.remove_nested_captures_recursively(actual_after_inject)
-
-    assert Macro.to_string(actual_after_remove_nest) ==
-             Macro.to_string(expected_after_remove_nest)
-
-    assert captures |> Enum.count() == 3
-    assert nested_captures |> Enum.count() == 1
-    assert Enum.count(captures -- nested_captures) == 2
   end
 
   describe "import in definject" do

@@ -18,29 +18,20 @@ defmodule Definject.Impl do
         raise "Cannot import/require/use inside definject. Move it to module level."
       end
     else
-      {injected_body, captures} =
-        body
-        |> expand_macros_recursively(env)
-        |> inject_remote_calls_recursively()
-
-      {nest_removed_body, nested_captures} =
-        injected_body
-        |> remove_nested_captures_recursively()
-
-      nest_removed_captures = captures -- nested_captures
+      {injected_body, captures} = inject_remote_calls_recursively(body, env)
 
       # `quote` with dynamic `context` requires Elixir 1.10+
       quote do
         def unquote(injected_head) do
-          Definject.Check.validate_deps(unquote(nest_removed_captures), deps)
+          Definject.Check.validate_deps(unquote(captures), deps)
 
-          unquote(nest_removed_body)
+          unquote(injected_body)
         end
       end
     end
   end
 
-  def expand_macros_recursively(body, env) do
+  def inject_remote_calls_recursively(body, env) do
     body
     |> Macro.prewalk(fn ast ->
       if expandable?(ast) do
@@ -49,21 +40,10 @@ defmodule Definject.Impl do
         ast
       end
     end)
-  end
-
-  def inject_remote_calls_recursively(body) do
-    body
+    |> Macro.prewalk(&mark_remote_capture/1)
     |> Macro.postwalk([], fn ast, captures ->
       %{ast: ast, captures: new_captures} = inject_remote_call(ast)
       {ast, new_captures ++ captures}
-    end)
-  end
-
-  def remove_nested_captures_recursively(body) do
-    body
-    |> Macro.postwalk([], fn ast, nested_captures ->
-      %{ast: ast, nested_captures: new_nested_captures} = remove_nested_capture(ast)
-      {ast, new_nested_captures ++ nested_captures}
     end)
   end
 
@@ -93,12 +73,18 @@ defmodule Definject.Impl do
 
   #
   # Not feasible to use this function because`no_parens: true` is only available from Elixir 1.10.
-  # If we can require Elixir 1.10, `remove_nested_capture` is not necessary.
+  # If we can require Elixir 1.10, `mark_remote_capture` is not necessary.
   #
   # def inject_remote_call({{:., _, [_remote_mod, _name]}, [{:no_parens, true} | _], _args} = ast) do
   #   # nested captures via & are not allowed
   #   %{ast: ast, captures: []}
   # end
+
+  def inject_remote_call(
+        {{:., _, [_remote_mod, _name]}, [{:remote_capture, true} | _], _args} = ast
+      ) do
+    %{ast: ast, captures: []}
+  end
 
   def inject_remote_call({{:., _, [remote_mod, name]}, _, args} = _ast)
       when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
@@ -117,40 +103,28 @@ defmodule Definject.Impl do
     %{ast: ast, captures: []}
   end
 
-  def remove_nested_capture(
-        {:&, _,
+  def mark_remote_capture(
+        {:&, c1,
          [
-           {:/, _,
+           {:/, c2,
             [
-              {{:., _,
-                [
-                  {:||, _,
-                   [
-                     {{:., _, [Access, :get]}, _,
-                      [
-                        {:deps, _, _},
-                        {:&, _,
-                         [{:/, _, [{{:., _, [remote_mod, name]}, _, []}, 0 = _wrong_arity]}]} =
-                          capture
-                      ]},
-                     capture
-                   ]}
-                ]}, _, []},
-              correct_arity
+              {{:., c3, [remote_mod, name]}, c4, []},
+              arity
             ]}
          ]}
       ) do
-    %{
-      ast: function_capture_ast(remote_mod, name, correct_arity),
-      nested_captures: [function_capture_ast(remote_mod, name, 0)]
-    }
+    {:&, c1,
+     [
+       {:/, c2,
+        [
+          {{:., c3, [remote_mod, name]}, [{:remote_capture, true} | c4], []},
+          arity
+        ]}
+     ]}
   end
 
-  def remove_nested_capture(ast) do
-    %{
-      ast: ast,
-      nested_captures: []
-    }
+  def mark_remote_capture(ast) do
+    ast
   end
 
   def surround_by_fn({{:&, _, [capture]}, v}) do
