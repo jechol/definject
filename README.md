@@ -15,8 +15,14 @@ in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:definject, "~> 0.4.0"}]
+  [{:definject, "~> 0.4.1"}]
 end
+```
+
+By default, `definject` is replaced with `def` in all but the test environment. Add the below configuration to enable in other environments.
+
+```elixir
+config :definject, :enable, true
 ```
 
 ## Usage

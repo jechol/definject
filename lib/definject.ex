@@ -49,7 +49,7 @@ defmodule Definject do
       end
   """
   defmacro definject(head, do: body) do
-    if Application.get_env(:definject, :enabled?, Mix.env() == :test) do
+    if Application.get_env(:definject, :enable, Mix.env() == :test) do
       Impl.inject_function(%{head: head, body: body, env: __CALLER__})
     else
       quote do
