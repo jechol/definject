@@ -1,7 +1,7 @@
 defmodule Definject.MixProject do
   use Mix.Project
 
-  @version "0.4.1"
+  @version "0.4.0"
 
   def project do
     [
@@ -50,7 +50,6 @@ defmodule Definject.MixProject do
     [
       main: "readme",
       name: "definject",
-      source_ref: "v#{@version}",
       canonical: "http://hexdocs.pm/definject",
       source_url: "https://github.com/definject/definject",
       extras: [

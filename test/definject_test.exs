@@ -62,6 +62,8 @@ defmodule InjectTest do
       assert_raise RuntimeError, ~r/Unused/, fn ->
         Foo.bar(:capture, mock(%{&Calc.sum/2 => 100}))
       end
+
+      assert Foo.bar(:capture, mock(%{&Calc.sum/2 => 100, strict: false})).(100, 200) == 300
     end
 
     test "unused" do
