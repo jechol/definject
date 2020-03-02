@@ -5,11 +5,9 @@ defmodule InjectImplTest do
 
   describe "head_with_deps" do
     test "with parenthesis" do
-      {:definject, _, [head, _]} =
+      head =
         quote do
-          definject add(a, b) do
-            nil
-          end
+          add(a, b)
         end
 
       expected_head =
@@ -22,11 +20,9 @@ defmodule InjectImplTest do
     end
 
     test "without parenthesis" do
-      {:definject, _, [head, _]} =
+      head =
         quote do
-          definject add do
-            nil
-          end
+          add
         end
 
       expected_head =
@@ -39,11 +35,9 @@ defmodule InjectImplTest do
     end
 
     test "with when" do
-      {:definject, _, [head, _]} =
+      head =
         quote do
-          definject add(a = 1, b) when (is_number(a) and is_number(b)) or is_string(a) do
-            nil
-          end
+          add(a = 1, b) when (is_number(a) and is_number(b)) or is_string(a)
         end
 
       expected_head =
@@ -55,12 +49,10 @@ defmodule InjectImplTest do
       assert Macro.to_string(actual_head) == Macro.to_string(expected_head)
     end
 
-    test "binary" do
-      {:definject, _, [head, _]} =
+    test "binary pattern matching" do
+      head =
         quote do
-          definject add(<<data::binary>>) do
-            nil
-          end
+          add(<<data::binary>>)
         end
 
       expected_head =
@@ -73,36 +65,43 @@ defmodule InjectImplTest do
     end
   end
 
-  test "inject_remote_calls_recursively" do
-    require Calc
+  describe "process_body_recursively" do
+    test "process_body_recusively" do
+      require Calc
 
-    body =
-      quote do
-        &Calc.sum/2
-        Calc.macro_sum(10, 20)
-        Math.pow(2, x)
-      end
+      body =
+        quote do
+          &Calc.sum/2
+          Calc.macro_sum(10, 20)
 
-    expected_ast =
-      quote do
-        &Calc.sum/2
+          case 1 == 1 do
+            x when x == true -> Math.pow(2, x)
+          end
+        end
 
-        (
-          import Calc
-          sum(10, 20)
-        )
+      expected_ast =
+        quote do
+          &Calc.sum/2
 
-        (deps[&Math.pow/2] || (&Math.pow/2)).(2, x)
-      end
+          (
+            import Calc
+            sum(10, 20)
+          )
 
-    expected_captures =
-      quote do
-        [&Math.pow/2]
-      end
+          case 1 == 1 do
+            x when x == true -> (deps[&Math.pow/2] || (&Math.pow/2)).(2, x)
+          end
+        end
 
-    {actual_ast, actual_captures} = Impl.inject_remote_calls_recursively(body, __ENV__)
-    assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
-    assert Macro.to_string(actual_captures) == Macro.to_string(expected_captures)
+      expected_captures =
+        quote do
+          [&Math.pow/2]
+        end
+
+      {:ok, {actual_ast, actual_captures}} = Impl.process_body_recusively(body, __ENV__)
+      assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
+      assert Macro.to_string(actual_captures) == Macro.to_string(expected_captures)
+    end
   end
 
   describe "import in definject" do

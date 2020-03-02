@@ -4,9 +4,7 @@ defmodule Definject.Impl do
   @env_modifiers [:import, :require, :use]
 
   def inject_function(%{head: head, body: body, env: %Macro.Env{} = env}) do
-    with {:ok, ^body} <- body |> check_no_modifier_recursively(),
-         {:ok, expanded_body} <- body |> expand_recursively(env),
-         {:ok, {injected_body, captures}} <- expanded_body |> inject_recursively() do
+    with {:ok, {injected_body, captures}} <- body |> process_body_recusively(env) do
       injected_head = head_with_deps(head)
 
       quote do
@@ -24,7 +22,14 @@ defmodule Definject.Impl do
     end
   end
 
-  def check_no_modifier_recursively(ast) do
+  def process_body_recusively(body, env) do
+    with {:ok, ^body} <- body |> check_no_modifier_recursively(),
+         {:ok, expanded_body} <- body |> expand_recursively(env) do
+      expanded_body |> inject_recursively()
+    end
+  end
+
+  defp check_no_modifier_recursively(ast) do
     ast
     |> Macro.prewalk(:ok, fn
       ast, {:error, reason} ->
@@ -39,7 +44,7 @@ defmodule Definject.Impl do
     |> convert_walk_result()
   end
 
-  def expand_recursively(ast, env) do
+  defp expand_recursively(ast, env) do
     ast
     |> Macro.prewalk(:ok, fn
       ast, {:error, reason} ->
@@ -59,12 +64,12 @@ defmodule Definject.Impl do
 
   # Don't use Macro.prewalk to bypass `&`,
   # otherwise it visits `A.b` in `&A.b/1`.
-  def inject_recursively({:&, _, _} = ast) do
+  defp inject_recursively({:&, _, _} = ast) do
     {:ok, {ast, []}}
   end
 
-  def inject_recursively({{:., _dot_ctx, [remote_mod, name]}, _call_ctx, args})
-      when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
+  defp inject_recursively({{:., _dot_ctx, [remote_mod, name]}, _call_ctx, args})
+       when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
     case args |> inject_recursively() do
       {:ok, {injected_args, captures}} ->
         capture = function_capture_ast(remote_mod, name, Enum.count(args))
@@ -81,13 +86,13 @@ defmodule Definject.Impl do
     end
   end
 
-  def inject_recursively({func, ctx, args}) when is_list(args) do
+  defp inject_recursively({func, ctx, args}) when is_list(args) do
     with {:ok, {injected_args, captures}} <- inject_recursively(args) do
       {:ok, {{func, ctx, injected_args}, captures}}
     end
   end
 
-  def inject_recursively(asts) when is_list(asts) do
+  defp inject_recursively(asts) when is_list(asts) do
     asts
     |> Enum.reverse()
     |> Enum.reduce_while({:ok, {[], []}}, fn ast, {:ok, {injected_asts, captures}} ->
@@ -101,7 +106,14 @@ defmodule Definject.Impl do
     end)
   end
 
-  def inject_recursively(ast) do
+  defp inject_recursively({left, right}) do
+    with {:ok, {left, left_captures}} <- inject_recursively(left),
+         {:ok, {right, right_captures}} <- inject_recursively(right) do
+      {:ok, {{left, right}, left_captures ++ right_captures}}
+    end
+  end
+
+  defp inject_recursively(ast) do
     {:ok, {ast, []}}
   end
 
