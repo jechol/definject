@@ -1,54 +1,109 @@
 defmodule Definject.Impl do
   @moduledoc false
   @uninjectable quote(do: [:erlang])
+  @env_modifiers [:import, :require, :use]
 
   def inject_function(%{head: head, body: body, env: %Macro.Env{} = env}) do
-    injected_head = head_with_deps(head)
+    with {:ok, ^body} <- body |> check_no_modifier_recursively(),
+         {:ok, expanded_body} <- body |> expand_recursively(env),
+         {:ok, {injected_body, captures}} <- expanded_body |> inject_recursively() do
+      injected_head = head_with_deps(head)
 
-    {_, macros_added?} =
-      Macro.prewalk(body, false, fn ast, macros_added? ->
-        {ast, macros_added? || add_macros?(ast)}
-      end)
-
-    if macros_added? do
-      quote do
-        raise "Cannot import/require/use inside definject. Move it to module level."
-      end
-    else
-      {injected_body, captures} = inject_remote_calls_recursively(body, env)
-
-      # `quote` with dynamic `context` requires Elixir 1.10+
       quote do
         def unquote(injected_head) do
-          Definject.Check.validate_deps(unquote(captures), deps)
+          Definject.Check.validate_deps(unquote(captures) |> IO.inspect(), deps)
 
           unquote(injected_body)
         end
       end
+    else
+      {:error, special_form} when special_form in @env_modifiers ->
+        quote do
+          raise "Cannot import/require/use inside definject. Move it to module level."
+        end
     end
   end
 
-  def inject_remote_calls_recursively(body, env) do
-    body
-    |> Macro.prewalk(fn ast ->
-      if expandable?(ast) do
-        Macro.expand(ast, env)
-      else
-        ast
-      end
+  def check_no_modifier_recursively(ast) do
+    ast
+    |> Macro.prewalk(:ok, fn
+      ast, {:error, reason} ->
+        {ast, {:error, reason}}
+
+      {special_form, _, _} = ast, :ok when special_form in @env_modifiers ->
+        {ast, {:error, special_form}}
+
+      ast, :ok ->
+        {ast, :ok}
     end)
-    |> Macro.prewalk(&mark_remote_capture/1)
-    |> Macro.postwalk([], fn ast, captures ->
-      %{ast: ast, captures: new_captures} = inject_remote_call(ast)
-      {ast, new_captures ++ captures}
+    |> convert_walk_result()
+  end
+
+  def expand_recursively(ast, env) do
+    ast
+    |> Macro.prewalk(:ok, fn
+      ast, {:error, reason} ->
+        {ast, {:error, reason}}
+
+      {:@, _, _} = ast, :ok ->
+        {ast, :ok}
+
+      ast, :ok ->
+        {Macro.expand(ast, env), :ok}
+    end)
+    |> convert_walk_result()
+  end
+
+  defp convert_walk_result({expanded_ast, :ok}), do: {:ok, expanded_ast}
+  defp convert_walk_result({_, {:error, reason}}), do: {:error, reason}
+
+  # Don't use Macro.prewalk to bypass `&`,
+  # otherwise it visits `A.b` in `&A.b/1`.
+  def inject_recursively({:&, _, _} = ast) do
+    {:ok, {ast, []}}
+  end
+
+  def inject_recursively({{:., _dot_ctx, [remote_mod, name]}, _call_ctx, args})
+      when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
+    case args |> inject_recursively() do
+      {:ok, {injected_args, captures}} ->
+        capture = function_capture_ast(remote_mod, name, Enum.count(args))
+
+        injected_call =
+          quote do
+            (deps[unquote(capture)] || unquote(capture)).(unquote_splicing(injected_args))
+          end
+
+        {:ok, {injected_call, [capture | captures]}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def inject_recursively({func, ctx, args}) when is_list(args) do
+    with {:ok, {injected_args, captures}} <- inject_recursively(args) do
+      {:ok, {{func, ctx, injected_args}, captures}}
+    end
+  end
+
+  def inject_recursively(asts) when is_list(asts) do
+    asts
+    |> Enum.reverse()
+    |> Enum.reduce_while({:ok, {[], []}}, fn ast, {:ok, {injected_asts, captures}} ->
+      case inject_recursively(ast) do
+        {:ok, {injected_ast, new_captures}} ->
+          {:cont, {:ok, {[injected_ast | injected_asts], new_captures ++ captures}}}
+
+        {:error, reason} ->
+          {:halt, {:error, reason}}
+      end
     end)
   end
 
-  defp expandable?({:@, _, _}), do: false
-  defp expandable?(_), do: true
-
-  defp add_macros?({name, _, _}) when name in [:import, :require, :use], do: true
-  defp add_macros?(_), do: false
+  def inject_recursively(ast) do
+    {:ok, {ast, []}}
+  end
 
   def head_with_deps({:when, when_ctx, [call_head, when_cond]}) do
     head = head_with_deps(call_head)
@@ -70,62 +125,7 @@ defmodule Definject.Impl do
     {name, meta, params ++ [deps]}
   end
 
-  #
-  # This function is not feasible because`no_parens: true` is only available from Elixir 1.10.
-  # When we can require Elixir 1.10, uncomment below and delete `mark_remote_capture`.
-  #
-  # def inject_remote_call({{:., _, [_remote_mod, _name]}, [{:no_parens, true} | _], _args} = ast) do
-  #   # nested captures via & are not allowed
-  #   %{ast: ast, captures: []}
-  # end
-  #
-
-  def inject_remote_call(
-        {{:., _, [_remote_mod, _name]}, [{:remote_capture, true} | _], _args} = ast
-      ) do
-    %{ast: ast, captures: []}
-  end
-
-  def inject_remote_call({{:., _, [remote_mod, name]}, _, args} = _ast)
-      when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
-    arity = Enum.count(args)
-    capture = function_capture_ast(remote_mod, name, arity)
-
-    ast =
-      quote do
-        (deps[unquote(capture)] || unquote(capture)).(unquote_splicing(args))
-      end
-
-    %{ast: ast, captures: [capture]}
-  end
-
-  def inject_remote_call(ast) do
-    %{ast: ast, captures: []}
-  end
-
-  def mark_remote_capture(
-        {:&, c1,
-         [
-           {:/, c2,
-            [
-              {{:., c3, [remote_mod, name]}, c4, []},
-              arity
-            ]}
-         ]}
-      ) do
-    {:&, c1,
-     [
-       {:/, c2,
-        [
-          {{:., c3, [remote_mod, name]}, [{:remote_capture, true} | c4], []},
-          arity
-        ]}
-     ]}
-  end
-
-  def mark_remote_capture(ast) do
-    ast
-  end
+  # For mock/1
 
   def surround_by_fn({{:&, _, [capture]}, v}) do
     {:/, _, [mf, a]} = capture
