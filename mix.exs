@@ -13,7 +13,7 @@ defmodule Definject.MixProject do
       deps: deps(),
       package: package(),
       description: "Unobtrusive Function Injector for Elixir",
-      source_url: "https://github.com/definject/definject",
+      source_url: "https://github.com/chain-partners/definject",
       docs: docs()
     ]
   end
@@ -41,7 +41,7 @@ defmodule Definject.MixProject do
   defp package do
     [
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/definject/definject"},
+      links: %{"GitHub" => "https://github.com/chain-partners/definject"},
       maintainers: ["Jechol Lee(mr.jechol@gmail.com)"]
     ]
   end
@@ -51,7 +51,7 @@ defmodule Definject.MixProject do
       main: "readme",
       name: "definject",
       canonical: "http://hexdocs.pm/definject",
-      source_url: "https://github.com/definject/definject",
+      source_url: "https://github.com/chain-partners/definject",
       extras: [
         "README.md"
       ]
