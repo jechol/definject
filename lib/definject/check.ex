@@ -1,8 +1,6 @@
 defmodule Definject.Check do
   @moduledoc false
-  @uninjectable Application.get_env(:definject, :uninjectable, [
-                  PlaceholderToSuppressCompileWarning
-                ])
+  @uninjectable quote(do: [:erlang])
 
   def validate_deps(used_captures, %{} = deps) do
     used_captures = used_captures |> Enum.sort() |> Enum.uniq()

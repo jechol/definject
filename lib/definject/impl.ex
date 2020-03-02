@@ -1,8 +1,6 @@
 defmodule Definject.Impl do
   @moduledoc false
-  @uninjectable Application.get_env(:definject, :uninjectable, [
-                  PlaceholderToSuppressCompileWarning
-                ])
+  @uninjectable quote(do: [:erlang])
 
   def inject_function(%{head: head, body: body, env: %Macro.Env{} = env}) do
     injected_head = head_with_deps(%{head: head})

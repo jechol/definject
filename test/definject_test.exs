@@ -28,7 +28,6 @@ defmodule InjectTest do
           # Local, Import
           :local -> quack()
           :import -> first([10, 20])
-          :uninjectable -> DoNotInject.str_to_atom("hello")
         end
       end
     end
@@ -45,7 +44,6 @@ defmodule InjectTest do
 
       assert Foo.bar(:local) == :arity_0_quack
       assert Foo.bar(:import) == 10
-      assert Foo.bar(:uninjectable) == :hello
     end
 
     test "working case" do
@@ -53,9 +51,7 @@ defmodule InjectTest do
       assert Foo.bar(:remote, %{&Enum.count/1 => fn _ -> 9999 end}) == 9999
       assert Foo.bar(:pipe, %{&Foo.id/1 => fn _ -> "100" end}) == "100"
       assert Foo.bar(:macro, %{&Calc.sum/2 => fn _, _ -> 999 end, strict: false}) == 30
-      assert Foo.bar(:kernel_plus, %{&Kernel.+/2 => fn _, _ -> 999 end}) == 999
       assert Foo.bar(:string_to_atom, %{&String.to_atom/1 => fn _ -> :injected end}) == :injected
-      assert Foo.bar(:string_to_integer, %{&String.to_integer/1 => fn _ -> 9090 end}) == 9090
     end
 
     test "capture" do
@@ -82,7 +78,15 @@ defmodule InjectTest do
 
     test "uninjectable" do
       assert_raise RuntimeError, ~r/Uninjectable/, fn ->
-        Foo.bar(:uninjectable, %{&DoNotInject.str_to_atom/1 => fn _ -> nil end})
+        Foo.bar(:remote, %{&:erlang.+/2 => fn _ -> nil end})
+      end
+
+      assert_raise RuntimeError, ~r/Uninjectable/, fn ->
+        Foo.bar(:remote, %{&Kernel.+/2 => fn _, _ -> 999 end})
+      end
+
+      assert_raise RuntimeError, ~r/Uninjectable/, fn ->
+        Foo.bar(:remote, %{&String.to_integer/1 => fn _ -> 9090 end})
       end
     end
   end
