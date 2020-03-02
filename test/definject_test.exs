@@ -30,6 +30,10 @@ defmodule InjectTest do
           :import -> first([10, 20])
         end
       end
+
+      definject hash(<<data::binary>>) do
+        :crypto.hash(:md5, <<data::binary>>)
+      end
     end
 
     test "original works" do
@@ -44,6 +48,9 @@ defmodule InjectTest do
 
       assert Foo.bar(:local) == :arity_0_quack
       assert Foo.bar(:import) == 10
+
+      assert Foo.hash("hello") ==
+               <<93, 65, 64, 42, 188, 75, 42, 118, 185, 113, 157, 145, 16, 23, 197, 146>>
     end
 
     test "working case" do

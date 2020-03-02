@@ -41,14 +41,31 @@ defmodule InjectImplTest do
     test "with when" do
       {:definject, _, [head, _]} =
         quote do
-          definject add(a, b) when (is_number(a) and is_number(b)) or is_string(a) do
+          definject add(a = 1, b) when (is_number(a) and is_number(b)) or is_string(a) do
             nil
           end
         end
 
       expected_head =
         quote do
-          add(a, b, %{} = deps \\ %{}) when (is_number(a) and is_number(b)) or is_string(a)
+          add(a = 1, b, %{} = deps \\ %{}) when (is_number(a) and is_number(b)) or is_string(a)
+        end
+
+      actual_head = Impl.head_with_deps(head)
+      assert Macro.to_string(actual_head) == Macro.to_string(expected_head)
+    end
+
+    test "binary" do
+      {:definject, _, [head, _]} =
+        quote do
+          definject add(<<data::binary>>) do
+            nil
+          end
+        end
+
+      expected_head =
+        quote do
+          add(<<data::binary>>, %{} = deps \\ %{})
         end
 
       actual_head = Impl.head_with_deps(head)
