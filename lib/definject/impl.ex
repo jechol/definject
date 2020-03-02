@@ -5,12 +5,12 @@ defmodule Definject.Impl do
   def inject_function(%{head: head, body: body, env: %Macro.Env{} = env}) do
     injected_head = head_with_deps(%{head: head})
 
-    {_, env_modified?} =
-      Macro.prewalk(body, false, fn ast, env_modified? ->
-        {ast, env_modified? || modifies_env?(ast)}
+    {_, macros_added?} =
+      Macro.prewalk(body, false, fn ast, macros_added? ->
+        {ast, macros_added? || add_macros?(ast)}
       end)
 
-    if env_modified? do
+    if macros_added? do
       quote do
         raise "Cannot import/require/use inside definject. Move it to module level."
       end
@@ -47,8 +47,8 @@ defmodule Definject.Impl do
   defp expandable?({:@, _, _}), do: false
   defp expandable?(_), do: true
 
-  defp modifies_env?({name, _, _}) when name in [:import, :require, :use], do: true
-  defp modifies_env?(_), do: false
+  defp add_macros?({name, _, _}) when name in [:import, :require, :use], do: true
+  defp add_macros?(_), do: false
 
   def head_with_deps(%{head: {:when, when_ctx, [call_head, when_cond]}}) do
     head = head_with_deps(%{head: call_head})
