@@ -1,5 +1,8 @@
 # Definject
 
+[![Hex version badge](https://img.shields.io/hexpm/v/definject.svg)](https://hex.pm/packages/definject)
+[![License badge](https://img.shields.io/hexpm/l/definject.svg)](https://github.com/definject/definject/blob/master/LICENSE.txt)
+
 Unobtrusive Function Injector for Elixir
 
 ## Why?
@@ -105,4 +108,4 @@ Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end` whe
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE.md) file for details
