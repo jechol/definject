@@ -66,7 +66,7 @@ defmodule InjectImplTest do
   end
 
   describe "process_body_recursively" do
-    test "process_body_recusively" do
+    test "indirect import is allowed" do
       require Calc
 
       body =
@@ -102,63 +102,53 @@ defmodule InjectImplTest do
       assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
       assert Macro.to_string(actual_captures) == Macro.to_string(expected_captures)
     end
+
+    test "direct import is not allowed" do
+      body =
+        quote do
+          import Calc
+
+          sum(a, b)
+        end
+
+      {:error, :import} = Impl.process_body_recusively(body, __ENV__)
+    end
   end
 
-  describe "import in definject" do
-    test "direct import is not allowed" do
-      {:def, _, [head, [do: body]]} =
-        quote do
-          def add(a, b) do
-            import Calc
-
-            sum(a, b)
+  test "inject_function" do
+    {:definject, _, [head, [do: body]]} =
+      quote do
+        definject add(a, b) do
+          case a do
+            false -> Calc.sum(a, b)
+            true -> Calc.macro_sum(a, b)
           end
         end
+      end
 
-      expected =
-        quote do
-          raise "Cannot import/require/use inside definject. Move it to module level."
-        end
+    expected =
+      quote do
+        def add(a, b, %{} = deps \\ %{}) do
+          Definject.Check.validate_deps([&Calc.sum/2], deps)
 
-      actual = Impl.inject_function(%{head: head, body: body, env: __ENV__})
-      assert Macro.to_string(actual) == Macro.to_string(expected)
-    end
+          case a do
+            false ->
+              (deps[&Calc.sum/2] || (&Calc.sum/2)).(a, b)
 
-    test "import in expanded macro is allowed" do
-      {:def, _, [head, [do: body]]} =
-        quote do
-          def add(a, b) do
-            case a do
-              false -> Calc.sum(a, b)
-              true -> Calc.macro_sum(a, b)
-            end
+            true ->
+              import Calc
+              sum(a, b)
           end
         end
+      end
 
-      expected =
-        quote do
-          def add(a, b, %{} = deps \\ %{}) do
-            Definject.Check.validate_deps([&Calc.sum/2], deps)
+    actual = Impl.inject_function(%{head: head, body: body, env: env_with_macros()})
+    assert Macro.to_string(actual) == Macro.to_string(expected)
+  end
 
-            case a do
-              false ->
-                (deps[&Calc.sum/2] || (&Calc.sum/2)).(a, b)
-
-              true ->
-                import Calc
-                sum(a, b)
-            end
-          end
-        end
-
-      actual = Impl.inject_function(%{head: head, body: body, env: env_with_macros()})
-      assert Macro.to_string(actual) == Macro.to_string(expected)
-    end
-
-    defp env_with_macros do
-      import Calc
-      macro_sum(1, 2)
-      __ENV__
-    end
+  defp env_with_macros do
+    import Calc
+    macro_sum(1, 2)
+    __ENV__
   end
 end

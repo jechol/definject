@@ -1,7 +1,7 @@
 defmodule Definject.Impl do
   @moduledoc false
   @uninjectable quote(do: [:erlang])
-  @env_modifiers [:import, :require, :use]
+  @modifiers [:import, :require, :use]
 
   def inject_function(%{head: head, body: body, env: %Macro.Env{} = env}) do
     with {:ok, {injected_body, captures}} <- body |> process_body_recusively(env) do
@@ -9,13 +9,13 @@ defmodule Definject.Impl do
 
       quote do
         def unquote(injected_head) do
-          Definject.Check.validate_deps(unquote(captures) |> IO.inspect(), deps)
+          Definject.Check.validate_deps(unquote(captures), deps)
 
           unquote(injected_body)
         end
       end
     else
-      {:error, special_form} when special_form in @env_modifiers ->
+      {:error, modifier} when modifier in @modifiers ->
         quote do
           raise "Cannot import/require/use inside definject. Move it to module level."
         end
@@ -35,8 +35,8 @@ defmodule Definject.Impl do
       ast, {:error, reason} ->
         {ast, {:error, reason}}
 
-      {special_form, _, _} = ast, :ok when special_form in @env_modifiers ->
-        {ast, {:error, special_form}}
+      {modifier, _, _} = ast, :ok when modifier in @modifiers ->
+        {ast, {:error, modifier}}
 
       ast, :ok ->
         {ast, :ok}
@@ -47,9 +47,6 @@ defmodule Definject.Impl do
   defp expand_recursively(ast, env) do
     ast
     |> Macro.prewalk(:ok, fn
-      ast, {:error, reason} ->
-        {ast, {:error, reason}}
-
       {:@, _, _} = ast, :ok ->
         {ast, :ok}
 
@@ -62,27 +59,22 @@ defmodule Definject.Impl do
   defp convert_walk_result({expanded_ast, :ok}), do: {:ok, expanded_ast}
   defp convert_walk_result({_, {:error, reason}}), do: {:error, reason}
 
-  # Don't use Macro.prewalk to bypass `&`,
-  # otherwise it visits `A.b` in `&A.b/1`.
+  # We should walk AST manually as `Marcro.prewalk/2` visits `A.b` in `&A.b/1`.
   defp inject_recursively({:&, _, _} = ast) do
     {:ok, {ast, []}}
   end
 
   defp inject_recursively({{:., _dot_ctx, [remote_mod, name]}, _call_ctx, args})
        when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
-    case args |> inject_recursively() do
-      {:ok, {injected_args, captures}} ->
-        capture = function_capture_ast(remote_mod, name, Enum.count(args))
+    with {:ok, {injected_args, captures}} <- args |> inject_recursively() do
+      capture = function_capture_ast(remote_mod, name, Enum.count(args))
 
-        injected_call =
-          quote do
-            (deps[unquote(capture)] || unquote(capture)).(unquote_splicing(injected_args))
-          end
+      injected_call =
+        quote do
+          (deps[unquote(capture)] || unquote(capture)).(unquote_splicing(injected_args))
+        end
 
-        {:ok, {injected_call, [capture | captures]}}
-
-      {:error, reason} ->
-        {:error, reason}
+      {:ok, {injected_call, [capture | captures]}}
     end
   end
 
