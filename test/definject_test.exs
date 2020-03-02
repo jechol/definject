@@ -59,6 +59,8 @@ defmodule InjectTest do
       assert Foo.bar(:pipe, %{&Foo.id/1 => fn _ -> "100" end}) == "100"
       assert Foo.bar(:macro, %{&Calc.sum/2 => fn _, _ -> 999 end, strict: false}) == 30
       assert Foo.bar(:string_to_atom, %{&String.to_atom/1 => fn _ -> :injected end}) == :injected
+
+      assert Foo.hash("hello", %{&:crypto.hash/2 => fn _, _ -> :world end}) == :world
     end
 
     test "capture" do

@@ -3,7 +3,7 @@
 [![Hex version badge](https://img.shields.io/hexpm/v/definject.svg)](https://hex.pm/packages/definject)
 [![License badge](https://img.shields.io/hexpm/l/definject.svg)](https://github.com/chain-partners/definject/blob/master/LICENSE.txt)
 
-Unobtrusive Function Injector for Elixir
+Unobtrusive Dependency Injector for Elixir
 
 ## Why?
 
@@ -18,7 +18,7 @@ in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:definject, "~> 0.5.0"}]
+  [{:definject, "~> 0.5.1"}]
 end
 ```
 
