@@ -7,6 +7,33 @@ Unobtrusive Function Injector for Elixir
 
 ## Why?
 
+Let's say we want to test following function with mocks for `Repo` and `Mailer`.
+
+```elixir
+def send_welcome_email(user_id) do
+  %{email: email} = Repo.get(User, user_id)
+
+  welcome_email(to: email)
+  |> Mailer.send()
+end
+```
+
+Existing mock libraries require you to modify target function like following to be able to inject mocks.
+
+```elixir
+def send_welcome_email(user_id, repo \\ Repo, mailer \\ Mailer) do
+  %{email: email} = repo.get(User, user_id)
+
+  welcome_email(to: email)
+  |> mailer.send()
+end
+```
+
+By replacing `Repo` to `repo`, you loose compiler check for existence of functions like `Repo.get/2`.
+This is too obtrusive approach that require you to modify function body and loose compiler checks for testing.
+
+`definject` does not require you to modify function arguments or body, except changing `def` to `definject`.
+
 Existing mock libraries provide mocks at module level. While this approach works okay, it is somewhat rigid and cumbersome to use. Besides, functions are the basic building blocks of functional programming, not modules. Wouldn't it be nice to have a way to inject mocks at function level then?
 
 `definject` is an alternative way to inject mocks to each function. It grants a more fine-grained control over mocks, allowing you to provide different mocks to each function. It also does not limit using `:async` option as mocks are contained in each test function.
