@@ -17,7 +17,7 @@ defmodule InjectImplTest do
           add(a, b, %{} = deps \\ %{})
         end
 
-      actual_head = Impl.head_with_deps(%{head: head, env: __ENV__})
+      actual_head = Impl.head_with_deps(head)
       assert Macro.to_string(actual_head) == Macro.to_string(expected_head)
     end
 
@@ -34,7 +34,7 @@ defmodule InjectImplTest do
           add(%{} = deps \\ %{})
         end
 
-      actual_head = Impl.head_with_deps(%{head: head, env: __ENV__})
+      actual_head = Impl.head_with_deps(head)
       assert Macro.to_string(actual_head) == Macro.to_string(expected_head)
     end
 
@@ -51,7 +51,7 @@ defmodule InjectImplTest do
           add(a, b, %{} = deps \\ %{}) when (is_number(a) and is_number(b)) or is_string(a)
         end
 
-      actual_head = Impl.head_with_deps(%{head: head, env: __ENV__})
+      actual_head = Impl.head_with_deps(head)
       assert Macro.to_string(actual_head) == Macro.to_string(expected_head)
     end
   end

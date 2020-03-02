@@ -3,7 +3,7 @@ defmodule Definject.Impl do
   @uninjectable quote(do: [:erlang])
 
   def inject_function(%{head: head, body: body, env: %Macro.Env{} = env}) do
-    injected_head = head_with_deps(%{head: head})
+    injected_head = head_with_deps(head)
 
     {_, macros_added?} =
       Macro.prewalk(body, false, fn ast, macros_added? ->
@@ -50,18 +50,18 @@ defmodule Definject.Impl do
   defp add_macros?({name, _, _}) when name in [:import, :require, :use], do: true
   defp add_macros?(_), do: false
 
-  def head_with_deps(%{head: {:when, when_ctx, [call_head, when_cond]}}) do
-    head = head_with_deps(%{head: call_head})
+  def head_with_deps({:when, when_ctx, [call_head, when_cond]}) do
+    head = head_with_deps(call_head)
     {:when, when_ctx, [head, when_cond]}
   end
 
-  def head_with_deps(%{head: {name, meta, context}}) when not is_list(context) do
+  def head_with_deps({name, meta, context}) when not is_list(context) do
     # Normalize function head.
     # def some do: nil end   ->   def some(), do: nil end
-    head_with_deps(%{head: {name, meta, []}})
+    head_with_deps({name, meta, []})
   end
 
-  def head_with_deps(%{head: {name, meta, params}}) when is_list(params) do
+  def head_with_deps({name, meta, params}) when is_list(params) do
     deps =
       quote do
         %{} = deps \\ %{}
