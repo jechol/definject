@@ -14,7 +14,7 @@ defmodule InjectTest do
 
       def id(v), do: v
 
-      definject bar(type) do
+      definject bar(type) when is_atom(type) do
         case type do
           # Remote
           :mod -> __MODULE__.quack()

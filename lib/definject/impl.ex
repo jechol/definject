@@ -52,6 +52,11 @@ defmodule Definject.Impl do
   defp modifies_env?({name, _, _}) when name in [:import, :require, :use], do: true
   defp modifies_env?(_), do: false
 
+  def head_with_deps(%{head: {:when, when_ctx, [call_head, when_cond]}}) do
+    head = head_with_deps(%{head: call_head})
+    {:when, when_ctx, [head, when_cond]}
+  end
+
   def head_with_deps(%{head: {name, meta, context}}) when not is_list(context) do
     # Normalize function head.
     # def some do: nil end   ->   def some(), do: nil end

@@ -1,6 +1,6 @@
 # Definject
 
-Functional Dependency Injection in Elixir
+Unobtrusive Function Injector for Elixir
 
 ## Why?
 
@@ -15,7 +15,7 @@ in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:definject, "~> 0.4.1"}]
+  [{:definject, "~> 0.4.2"}]
 end
 ```
 

@@ -1,7 +1,7 @@
 defmodule Definject.MixProject do
   use Mix.Project
 
-  @version "0.4.0"
+  @version "0.4.2"
 
   def project do
     [
@@ -12,7 +12,7 @@ defmodule Definject.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       package: package(),
-      description: "Functional Dependency Injection",
+      description: "Unobtrusive Function Injector for Elixir",
       source_url: "https://github.com/definject/definject",
       docs: docs()
     ]

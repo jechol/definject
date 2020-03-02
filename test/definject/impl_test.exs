@@ -37,6 +37,23 @@ defmodule InjectImplTest do
       actual_head = Impl.head_with_deps(%{head: head, env: __ENV__})
       assert Macro.to_string(actual_head) == Macro.to_string(expected_head)
     end
+
+    test "with when" do
+      {:definject, _, [head, _]} =
+        quote do
+          definject add(a, b) when (is_number(a) and is_number(b)) or is_string(a) do
+            nil
+          end
+        end
+
+      expected_head =
+        quote do
+          add(a, b, %{} = deps \\ %{}) when (is_number(a) and is_number(b)) or is_string(a)
+        end
+
+      actual_head = Impl.head_with_deps(%{head: head, env: __ENV__})
+      assert Macro.to_string(actual_head) == Macro.to_string(expected_head)
+    end
   end
 
   test "inject_remote_calls_recursively" do
