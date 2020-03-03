@@ -88,7 +88,7 @@ defmodule Definject.Inject do
 
   defp inject({{:., _dot_ctx, [remote_mod, name]}, _call_ctx, args})
        when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
-    capture = Definject.Mock.function_capture_ast(remote_mod, name, Enum.count(args))
+    capture = Definject.Mock.function_capture_ast({remote_mod, name, Enum.count(args)})
 
     injected_call =
       quote do

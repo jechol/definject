@@ -4,7 +4,7 @@ defmodule Definject.Mock do
     {mf, _, []} = mf
     {:., _, [m, f]} = mf
 
-    capture = function_capture_ast(m, f, a)
+    capture = function_capture_ast({m, f, a})
     const_fn = {:fn, [], [{:->, [], [Macro.generate_arguments(a, __MODULE__), v]}]}
 
     {capture, const_fn}
@@ -14,8 +14,15 @@ defmodule Definject.Mock do
     orig
   end
 
-  def function_capture_ast(mod_ast, name, arity) do
-    :erlang.make_fun(mod_ast |> unquote_module(), name, arity)
+  def function_capture_ast({mod, name, arity}) do
+    mf = {{:., [], [mod, name]}, [], []}
+    mfa = {:/, [], [mf, arity]}
+    {:&, [], [mfa]}
+  end
+
+  def unquote_function_capture({mod_ast, name, arity}) do
+    mod = mod_ast |> unquote_module()
+    :erlang.make_fun(mod, name, arity)
   end
 
   defp unquote_module({:__aliases__, [alias: mod], _}) when is_atom(mod) and mod != false do
