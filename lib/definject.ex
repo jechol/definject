@@ -60,11 +60,14 @@ defmodule Definject do
       if Application.get_env(:definject, :trace, false) do
         %{file: file, line: line} = __CALLER__
 
-        IO.puts("definject converting #{file}:#{line}")
-        IO.puts("Before >>>")
-        IO.puts(original |> Macro.to_string())
-        IO.puts("After >>>")
-        IO.puts(injected |> Macro.to_string())
+        dash = "=============================="
+
+        IO.puts("""
+        #{dash} definject #{file}:#{line} #{dash}
+        #{original |> Macro.to_string()}
+        #{dash} into #{dash}"
+        #{injected |> Macro.to_string()}
+        """)
       end
 
       injected

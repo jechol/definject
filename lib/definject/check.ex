@@ -2,21 +2,19 @@ defmodule Definject.Check do
   @moduledoc false
   @uninjectable quote(do: [:erlang])
 
-  def validate_deps(used_captures, %{} = deps) do
+  def validate_deps(%{} = deps, used_captures, {mod, name, arity}) do
+    if Application.get_env(:definject, :trace, false) do
+      IO.puts("Validating #{deps |> inspect} against #{used_captures |> inspect}")
+    end
+
     used_captures = used_captures |> Enum.sort() |> Enum.uniq()
     strict = Map.get(deps, :strict, true)
     injected_deps = Map.drop(deps, [:strict])
 
     for {capture, _} <- injected_deps do
-      if Application.get_env(:definject, :trace, false) do
-        IO.puts("Validating #{capture |> inspect} against #{used_captures |> inspect()}")
-      end
-
       with :ok <- confirm_type_is_external(capture),
-           :ok <- confirm_module_is_injectable(capture),
-           :ok <-
-             confirm_capture_is_used(capture, %{strict: strict, used_captures: used_captures}) do
-        :ok
+           :ok <- confirm_module_is_injectable(capture) do
+        confirm_capture_is_used(capture, %{strict: strict, used_captures: used_captures})
       end
     end
   end

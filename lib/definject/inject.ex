@@ -3,13 +3,18 @@ defmodule Definject.Inject do
   @uninjectable quote(do: [:erlang])
   @modifiers [:import, :require, :use]
 
-  def inject_function(head, body, %Macro.Env{file: file, line: line} = env) do
+  def inject_function(head, body, %Macro.Env{module: mod, file: file, line: line} = env) do
     with {:ok, {injected_body, captures}} <- body |> process_body_recusively(env) do
-      injected_head = head_with_deps(head)
+      {name, _, args} = injected_head = head_with_deps(head)
+      arity = args |> Enum.count()
 
       quote do
         def unquote(injected_head) do
-          Definject.Check.validate_deps(unquote(captures), deps)
+          Definject.Check.validate_deps(
+            deps,
+            unquote(captures),
+            unquote(Macro.escape({mod, name, arity}))
+          )
 
           unquote(injected_body)
         end
@@ -88,7 +93,8 @@ defmodule Definject.Inject do
 
   defp inject({{:., _dot_ctx, [mod, name]}, _call_ctx, args})
        when mod not in @uninjectable and is_atom(name) and is_list(args) do
-    capture = function_capture_ast({mod, name, Enum.count(args)})
+    mfa = {mod, name, Enum.count(args)}
+    capture = function_capture_ast(mfa)
 
     injected_call =
       quote do

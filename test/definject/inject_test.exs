@@ -1,4 +1,4 @@
-defmodule DefInject.InjectTest do
+defmodule Definject.InjectTest do
   use ExUnit.Case, async: true
   require Definject.Inject
   alias Definject.Inject
@@ -188,7 +188,7 @@ defmodule DefInject.InjectTest do
       expected =
         quote do
           def add(a, b, %{} = deps \\ %{}) do
-            Definject.Check.validate_deps([&Calc.sum/2], deps)
+            Definject.Check.validate_deps(deps, [&Calc.sum/2], {Definject.InjectTest, :add, 3})
 
             case a do
               false ->
