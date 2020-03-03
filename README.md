@@ -1,4 +1,4 @@
-# Definject
+![](https://github.com/chain-partners/definject/blob/master/brand/logo.png?raw=true)
 
 [![Hex version badge](https://img.shields.io/hexpm/v/definject.svg)](https://hex.pm/packages/definject)
 [![License badge](https://img.shields.io/hexpm/l/definject.svg)](https://github.com/chain-partners/definject/blob/master/LICENSE.md)
