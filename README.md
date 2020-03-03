@@ -113,6 +113,8 @@ end
 If you don't need pattern matching in mock function, `mock/1` can be used to reduce boilerplates.
 
 ```elixir
+import Definject
+
 test "send_welcome_email with mock/1" do
   Accounts.send_welcome_email(
     100,
