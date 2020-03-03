@@ -1,7 +1,7 @@
 # Definject
 
 [![Hex version badge](https://img.shields.io/hexpm/v/definject.svg)](https://hex.pm/packages/definject)
-[![License badge](https://img.shields.io/hexpm/l/definject.svg)](https://github.com/chain-partners/definject/blob/master/LICENSE.txt)
+[![License badge](https://img.shields.io/hexpm/l/definject.svg)](https://github.com/chain-partners/definject/blob/master/LICENSE.md)
 
 Unobtrusive Dependency Injector for Elixir
 
@@ -40,7 +40,7 @@ in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:definject, "~> 0.5.1"}]
+  [{:definject, "~> 0.6.0"}]
 end
 ```
 
