@@ -173,35 +173,45 @@ defmodule DefInject.InjectTest do
     end
   end
 
-  test "inject_function" do
-    {:definject, _, [head, [do: body]]} =
-      quote do
-        definject add(a, b) do
-          case a do
-            false -> Calc.sum(a, b)
-            true -> Calc.macro_sum(a, b)
+  describe "inject_function" do
+    test "success case" do
+      {:definject, _, [head, [do: body]]} =
+        quote do
+          definject add(a, b) do
+            case a do
+              false -> Calc.sum(a, b)
+              true -> Calc.macro_sum(a, b)
+            end
           end
         end
-      end
 
-    expected =
-      quote do
-        def add(a, b, %{} = deps \\ %{}) do
-          Definject.Check.validate_deps([&Calc.sum/2], deps)
+      expected =
+        quote do
+          def add(a, b, %{} = deps \\ %{}) do
+            Definject.Check.validate_deps([&Calc.sum/2], deps)
 
-          case a do
-            false ->
-              (deps[&Calc.sum/2] || (&Calc.sum/2)).(a, b)
+            case a do
+              false ->
+                (deps[&Calc.sum/2] || (&Calc.sum/2)).(a, b)
 
-            true ->
-              import Calc
-              sum(a, b)
+              true ->
+                import Calc
+                sum(a, b)
+            end
           end
         end
-      end
 
-    actual = Inject.inject_function(head, body, env_with_macros())
-    assert Macro.to_string(actual) == Macro.to_string(expected)
+      actual = Inject.inject_function(head, body, env_with_macros())
+      assert Macro.to_string(actual) == Macro.to_string(expected)
+    end
+
+    test "Compile error case" do
+      assert_raise CompileError, ~r(import/require/use), fn ->
+        :code.priv_dir(:definject)
+        |> Path.join("import_in_inject.ex")
+        |> Code.eval_file()
+      end
+    end
   end
 
   defp env_with_macros do

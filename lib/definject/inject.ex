@@ -3,7 +3,7 @@ defmodule Definject.Inject do
   @uninjectable quote(do: [:erlang])
   @modifiers [:import, :require, :use]
 
-  def inject_function(head, body, %Macro.Env{} = env) do
+  def inject_function(head, body, %Macro.Env{file: file, line: line} = env) do
     with {:ok, {injected_body, captures}} <- body |> process_body_recusively(env) do
       injected_head = head_with_deps(head)
 
@@ -16,9 +16,10 @@ defmodule Definject.Inject do
       end
     else
       {:error, :modifier} ->
-        quote do
-          raise "Cannot import/require/use inside definject. Move it to module level."
-        end
+        raise CompileError,
+          file: file,
+          line: line,
+          description: "Cannot import/require/use inside definject. Move it to module level."
     end
   end
 
