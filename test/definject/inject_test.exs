@@ -66,6 +66,19 @@ defmodule DefInject.InjectTest do
   end
 
   describe "process_body_recursively" do
+    test "capture is not expanded" do
+      body =
+        quote do
+          &Calc.sum/2
+        end
+
+      expected_ast = body
+
+      {:ok, {actual_ast, actual_captures}} = Inject.process_body_recusively(body, __ENV__)
+      assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
+      assert actual_captures == []
+    end
+
     test "indirect import is allowed" do
       require Calc
 
@@ -109,6 +122,54 @@ defmodule DefInject.InjectTest do
         end
 
       {:error, :import} = Inject.process_body_recusively(body, __ENV__)
+    end
+
+    test "operator case 1" do
+      body =
+        quote do
+          Calc.to_int(a) >>> fn a_int -> Calc.to_int(b) >>> fn b_int -> a_int + b_int end end
+        end
+
+      expected_ast =
+        quote do
+          (deps[&Calc.to_int/1] || (&Calc.to_int/1)).(a) >>>
+            fn
+              a_int ->
+                (deps[&Calc.to_int/1] || (&Calc.to_int/1)).(b) >>>
+                  fn
+                    b_int -> a_int + b_int
+                  end
+            end
+        end
+
+      expected_captures = [&Calc.to_int/1, &Calc.to_int/1]
+
+      {:ok, {actual_ast, actual_captures}} = Inject.process_body_recusively(body, __ENV__)
+      assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
+      assert Macro.to_string(actual_captures) == Macro.to_string(expected_captures)
+    end
+
+    test "operator case 2" do
+      body =
+        quote do
+          Calc.to_int(a) >>> fn a_int -> (fn b_int -> a_int + b_int end).(Calc.to_int(b)) end
+        end
+
+      expected_ast =
+        quote do
+          (deps[&Calc.to_int/1] || (&Calc.to_int/1)).(a) >>>
+            fn a_int ->
+              (fn b_int ->
+                 a_int + b_int
+               end).((deps[&Calc.to_int/1] || (&Calc.to_int/1)).(b))
+            end
+        end
+
+      expected_captures = [&Calc.to_int/1, &Calc.to_int/1]
+
+      {:ok, {actual_ast, actual_captures}} = Inject.process_body_recusively(body, __ENV__)
+      assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
+      assert Macro.to_string(actual_captures) == Macro.to_string(expected_captures)
     end
   end
 

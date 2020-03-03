@@ -2,6 +2,14 @@ defmodule InjectTest do
   use ExUnit.Case, async: true
   import Definject
 
+  defmodule Nested do
+    defmodule DoubleNested do
+      def to_int(str), do: String.to_integer(str)
+    end
+  end
+
+  alias Nested.DoubleNested
+
   describe "definject" do
     def quack(), do: nil
 
@@ -19,6 +27,7 @@ defmodule InjectTest do
           # Remote
           :mod -> __MODULE__.quack()
           :remote -> Enum.count([1, 2])
+          :nested_remote -> DoubleNested.to_int("99")
           :pipe -> "1" |> Foo.id()
           :macro -> Calc.macro_sum(10, 20)
           :capture -> &Calc.sum/2
@@ -39,6 +48,7 @@ defmodule InjectTest do
     test "original works" do
       assert Foo.bar(:mod) == :arity_0_quack
       assert Foo.bar(:remote) == 2
+      assert Foo.bar(:nested_remote) == 99
       assert Foo.bar(:pipe) == "1"
       assert Foo.bar(:macro) == 30
       assert Foo.bar(:capture).(20, 40) == 60
@@ -56,7 +66,11 @@ defmodule InjectTest do
     test "working case" do
       assert Foo.bar(:mod, %{&Foo.quack/0 => fn -> :injected end}) == :injected
       assert Foo.bar(:remote, %{&Enum.count/1 => fn _ -> 9999 end}) == 9999
-      assert Foo.bar(:pipe, %{&Foo.id/1 => fn _ -> "100" end}) == "100"
+      assert Foo.bar(:nested_remote, %{&DoubleNested.to_int/1 => fn _ -> 6 end}) == 6
+
+      assert Foo.bar(:pipe, %{&Foo.id/1 => fn _ -> "100" end, &Enum.count/1 => fn _ -> 9999 end}) ==
+               "100"
+
       assert Foo.bar(:macro, %{&Calc.sum/2 => fn _, _ -> 999 end, strict: false}) == 30
       assert Foo.bar(:string_to_atom, %{&String.to_atom/1 => fn _ -> :injected end}) == :injected
 
