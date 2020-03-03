@@ -93,6 +93,6 @@ defmodule Definject do
   defmacro mock({:%{}, context, mocks}) do
     alias Definject.Mock
 
-    {:%{}, context, mocks |> Enum.map(&Mock.surround_by_fn/1)}
+    {:%{}, context, mocks |> Enum.map(&Mock.decorate_with_fn/1)}
   end
 end

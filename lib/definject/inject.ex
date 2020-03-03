@@ -15,7 +15,7 @@ defmodule Definject.Inject do
         end
       end
     else
-      {:error, modifier} when modifier in @modifiers ->
+      {:error, :modifier} ->
         quote do
           raise "Cannot import/require/use inside definject. Move it to module level."
         end
@@ -35,22 +35,21 @@ defmodule Definject.Inject do
   end
 
   defp check_no_modifier_recursively(ast) do
-    ast
-    |> Macro.prewalk(:ok, fn
-      ast, {:error, reason} ->
-        {ast, {:error, reason}}
+    case ast
+         |> Macro.prewalk(:ok, fn
+           _ast, {:error, :modifier} ->
+             {nil, {:error, :modifier}}
 
-      {modifier, _, _} = ast, :ok when modifier in @modifiers ->
-        {ast, {:error, modifier}}
+           {modifier, _, _}, :ok when modifier in @modifiers ->
+             {nil, {:error, :modifier}}
 
-      ast, :ok ->
-        {ast, :ok}
-    end)
-    |> convert_walk_result()
+           ast, :ok ->
+             {ast, :ok}
+         end) do
+      {expanded_ast, :ok} -> {:ok, expanded_ast}
+      {_, {:error, :modifier}} -> {:error, :modifier}
+    end
   end
-
-  defp convert_walk_result({expanded_ast, :ok}), do: {:ok, expanded_ast}
-  defp convert_walk_result({_, {:error, reason}}), do: {:error, reason}
 
   defp expand_recursively!(ast, env) do
     ast
@@ -88,7 +87,7 @@ defmodule Definject.Inject do
 
   defp inject({{:., _dot_ctx, [mod, name]}, _call_ctx, args})
        when mod not in @uninjectable and is_atom(name) and is_list(args) do
-    capture = Definject.Mock.function_capture_ast({mod, name, Enum.count(args)})
+    capture = function_capture_ast({mod, name, Enum.count(args)})
 
     injected_call =
       quote do
@@ -102,9 +101,15 @@ defmodule Definject.Inject do
     {ast, []}
   end
 
-  def head_with_deps({:when, when_ctx, [call_head, when_cond]}) do
-    head = head_with_deps(call_head)
-    {:when, when_ctx, [head, when_cond]}
+  defp function_capture_ast({mod, name, arity}) do
+    mf = {{:., [], [mod, name]}, [], []}
+    mfa = {:/, [], [mf, arity]}
+    {:&, [], [mfa]}
+  end
+
+  def head_with_deps({:when, when_ctx, [name_args, when_cond]}) do
+    name_args = head_with_deps(name_args)
+    {:when, when_ctx, [name_args, when_cond]}
   end
 
   def head_with_deps({name, meta, context}) when not is_list(context) do

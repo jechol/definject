@@ -121,7 +121,7 @@ defmodule DefInject.InjectTest do
           sum(a, b)
         end
 
-      {:error, :import} = Inject.process_body_recusively(body, __ENV__)
+      {:error, :modifier} = Inject.process_body_recusively(body, __ENV__)
     end
 
     test "operator case 1" do
