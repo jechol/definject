@@ -79,6 +79,20 @@ defmodule Definject.InjectTest do
       assert actual_captures == []
     end
 
+    test ":erlang is not expanded" do
+      body =
+        quote do
+          :erlang.+(100, 200)
+          Kernel.+(100, 200)
+        end
+
+      expected_ast = body
+
+      {:ok, {actual_ast, actual_captures}} = Inject.process_body_recusively(body, __ENV__)
+      assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
+      assert actual_captures == []
+    end
+
     test "indirect import is allowed" do
       require Calc
 
@@ -188,7 +202,7 @@ defmodule Definject.InjectTest do
       expected =
         quote do
           def add(a, b, %{} = deps \\ %{}) do
-            Definject.Check.validate_deps(deps, [&Calc.sum/2], {Definject.InjectTest, :add, 3})
+            Definject.Check.validate_deps(deps, [&Calc.sum/2], {Definject.InjectTest, :add, 2})
 
             case a do
               false ->

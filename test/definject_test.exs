@@ -78,7 +78,7 @@ defmodule InjectTest do
     end
 
     test "capture" do
-      assert_raise RuntimeError, ~r/Unused/, fn ->
+      assert_raise RuntimeError, ~r(unused.*Foo.bar/1), fn ->
         Foo.bar(:capture, mock(%{&Calc.sum/2 => 100}))
       end
 
@@ -86,7 +86,7 @@ defmodule InjectTest do
     end
 
     test "unused" do
-      assert_raise RuntimeError, ~r/Unused/, fn ->
+      assert_raise RuntimeError, ~r/unused/, fn ->
         Foo.bar(:remote, mock(%{&Enum.map/2 => 100}))
       end
 

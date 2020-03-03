@@ -1,12 +1,15 @@
 defmodule Definject.Inject do
   @moduledoc false
-  @uninjectable quote(do: [:erlang])
+
+  alias Definject.AST
+
+  @uninjectable [:erlang, Kernel]
   @modifiers [:import, :require, :use]
 
   def inject_function(head, body, %Macro.Env{module: mod, file: file, line: line} = env) do
     with {:ok, {injected_body, captures}} <- body |> process_body_recusively(env) do
-      {name, _, args} = injected_head = head_with_deps(head)
-      arity = args |> Enum.count()
+      injected_head = head_with_deps(head)
+      {name, arity} = get_fa(head)
 
       quote do
         def unquote(injected_head) do
@@ -26,6 +29,14 @@ defmodule Definject.Inject do
           line: line,
           description: "Cannot import/require/use inside definject. Move it to module level."
     end
+  end
+
+  defp get_fa({:when, _, [name_args, _when_cond]}) do
+    get_fa(name_args)
+  end
+
+  defp get_fa({name, _, args}) do
+    {name, args |> Enum.count()}
   end
 
   def process_body_recusively(body, env) do
@@ -91,27 +102,25 @@ defmodule Definject.Inject do
     {ast, []}
   end
 
-  defp inject({{:., _dot_ctx, [mod, name]}, _call_ctx, args})
-       when mod not in @uninjectable and is_atom(name) and is_list(args) do
-    mfa = {mod, name, Enum.count(args)}
-    capture = function_capture_ast(mfa)
+  defp inject({{:., _dot_ctx, [mod, name]}, _call_ctx, args} = ast)
+       when is_atom(name) and is_list(args) do
+    if AST.unquote_alias(mod) not in @uninjectable do
+      mfa = {mod, name, Enum.count(args)}
+      capture = AST.quote_function_capture(mfa)
 
-    injected_call =
-      quote do
-        (deps[unquote(capture)] || unquote(capture)).(unquote_splicing(args))
-      end
+      injected_call =
+        quote do
+          (deps[unquote(capture)] || unquote(capture)).(unquote_splicing(args))
+        end
 
-    {injected_call, [capture]}
+      {injected_call, [capture]}
+    else
+      {ast, []}
+    end
   end
 
   defp inject(ast) do
     {ast, []}
-  end
-
-  defp function_capture_ast({mod, name, arity}) do
-    mf = {{:., [], [mod, name]}, [], []}
-    mfa = {:/, [], [mf, arity]}
-    {:&, [], [mfa]}
   end
 
   def head_with_deps({:when, when_ctx, [name_args, when_cond]}) do

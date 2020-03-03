@@ -1,6 +1,7 @@
 defmodule Definject.Check do
   @moduledoc false
-  @uninjectable quote(do: [:erlang])
+
+  @uninjectable [:erlang, Kernel]
 
   def validate_deps(%{} = deps, used_captures, {mod, name, arity}) do
     if Application.get_env(:definject, :trace, false) do
@@ -13,41 +14,47 @@ defmodule Definject.Check do
 
     for {capture, _} <- injected_deps do
       with :ok <- confirm_type_is_external(capture),
-           :ok <- confirm_module_is_injectable(capture) do
-        confirm_capture_is_used(capture, %{strict: strict, used_captures: used_captures})
+           :ok <- confirm_module_is_injectable(capture),
+           :ok <- confirm_capture_is_used(capture, used_captures, strict) do
+        :ok
+      else
+        {:error, :local} ->
+          raise "Local function #{inspect(capture)} cannot be injected "
+
+        {:error, {:uninjectable, module}} ->
+          raise "Uninjectable module #{module} for #{inspect(capture)}"
+
+        {:error, :unused} ->
+          raise "#{inspect(capture)} is unused in #{mod}.#{name}/#{arity}. Add `strict: false` to disable this."
       end
     end
   end
 
   defp confirm_type_is_external(capture) do
     case :erlang.fun_info(capture, :type) do
-      {:type, :local} ->
-        raise "Local function cannot be injected #{inspect(capture)}"
-
       {:type, :external} ->
         :ok
+
+      {:type, :local} ->
+        {:error, :local}
     end
   end
 
   defp confirm_module_is_injectable(capture) do
     case :erlang.fun_info(capture, :module) do
       {:module, module} when module in @uninjectable ->
-        raise "Uninjectable module #{inspect(module)} for #{inspect(capture)}"
+        {:error, {:uninjectable, module}}
 
       {:module, _} ->
         :ok
     end
   end
 
-  defp confirm_capture_is_used(_, %{strict: false}) do
-    :ok
-  end
-
-  defp confirm_capture_is_used(capture, %{strict: true, used_captures: used_captures}) do
-    if capture not in used_captures do
-      raise "Unused injection found #{inspect(capture)}. Add `strict: false` to disable this."
-    else
+  defp confirm_capture_is_used(capture, used_captures, strict) do
+    if not strict or capture in used_captures do
       :ok
+    else
+      {:error, :unused}
     end
   end
 end
