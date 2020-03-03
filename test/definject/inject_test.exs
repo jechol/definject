@@ -200,7 +200,7 @@ defmodule DefInject.InjectTest do
         end
       end
 
-    actual = Inject.inject_function(%{head: head, body: body, env: env_with_macros()})
+    actual = Inject.inject_function(head, body, env_with_macros())
     assert Macro.to_string(actual) == Macro.to_string(expected)
   end
 

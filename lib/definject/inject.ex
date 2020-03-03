@@ -3,7 +3,7 @@ defmodule Definject.Inject do
   @uninjectable quote(do: [:erlang])
   @modifiers [:import, :require, :use]
 
-  def inject_function(%{head: head, body: body, env: %Macro.Env{} = env}) do
+  def inject_function(head, body, %Macro.Env{} = env) do
     with {:ok, {injected_body, captures}} <- body |> process_body_recusively(env) do
       injected_head = head_with_deps(head)
 

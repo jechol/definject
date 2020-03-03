@@ -55,7 +55,7 @@ defmodule Definject do
       end
 
     if Application.get_env(:definject, :enable, Mix.env() == :test) do
-      injected = Inject.inject_function(%{head: head, body: body, env: __CALLER__})
+      injected = Inject.inject_function(head, body, __CALLER__)
 
       if Application.get_env(:definject, :trace, false) do
         %{file: file, line: line} = __CALLER__
