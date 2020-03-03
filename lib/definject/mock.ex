@@ -14,9 +14,19 @@ defmodule Definject.Mock do
     orig
   end
 
-  def function_capture_ast(remote_mod, name, arity) do
-    mf = {{:., [], [remote_mod, name]}, [], []}
-    mfa = {:/, [], [mf, arity]}
-    {:&, [], [mfa]}
+  def function_capture_ast(mod_ast, name, arity) do
+    :erlang.make_fun(mod_ast |> unquote_module(), name, arity)
+  end
+
+  defp unquote_module({:__aliases__, [alias: mod], _}) when is_atom(mod) and mod != false do
+    mod
+  end
+
+  defp unquote_module({:__aliases__, _, atoms}) do
+    Module.concat(atoms)
+  end
+
+  defp unquote_module(atom) when is_atom(atom) do
+    atom
   end
 end

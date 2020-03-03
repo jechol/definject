@@ -93,14 +93,11 @@ defmodule DefInject.InjectTest do
           end
         end
 
-      expected_captures =
-        quote do
-          [&Math.pow/2]
-        end
+      expected_captures = [&Math.pow/2]
 
       {:ok, {actual_ast, actual_captures}} = Inject.process_body_recusively(body, __ENV__)
       assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
-      assert Macro.to_string(actual_captures) == Macro.to_string(expected_captures)
+      assert actual_captures == expected_captures
     end
 
     test "direct import is not allowed" do
