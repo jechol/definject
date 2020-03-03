@@ -29,7 +29,7 @@ def send_welcome_email(user_id, repo \\ Repo, mailer \\ Mailer) do
 end
 ```
 
-First, I believe that this approach is too obtrusive as it requires modifying the function body to make it testable. Second, with `Repo` replaced with `repo`, the compiler can no longer guarantee the existence of `Repo.get/2` function.
+First, I believe that this approach is too obtrusive as it requires modifying the function body to make it testable. Second, with `Mailer` replaced with `mailer`, the compiler no longer check the existence of `Mailer.send/1`.
 
 `definject` does not require you to modify function arguments or body. Instead, you just need to replace `def` with `definject`. It also allows injecting different mocks to each function. It also does not limit using `:async` option as mocks are contained in each test function.
 
