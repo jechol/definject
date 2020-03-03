@@ -23,9 +23,14 @@ defmodule Definject.Impl do
   end
 
   def process_body_recusively(body, env) do
-    with {:ok, ^body} <- body |> check_no_modifier_recursively(),
-         {:ok, expanded_body} <- body |> expand_recursively(env) do
-      expanded_body |> inject_recursively()
+    with {:ok, ^body} <- body |> check_no_modifier_recursively() do
+      {injected_body, captures} =
+        body
+        |> expand_recursively!(env)
+        |> mark_remote_call_recursively!()
+        |> inject_recursively!()
+
+      {:ok, {injected_body, captures}}
     end
   end
 
@@ -44,69 +49,57 @@ defmodule Definject.Impl do
     |> convert_walk_result()
   end
 
-  defp expand_recursively(ast, env) do
-    ast
-    |> Macro.prewalk(:ok, fn
-      {:@, _, _} = ast, :ok ->
-        {ast, :ok}
-
-      ast, :ok ->
-        {Macro.expand(ast, env), :ok}
-    end)
-    |> convert_walk_result()
-  end
-
   defp convert_walk_result({expanded_ast, :ok}), do: {:ok, expanded_ast}
   defp convert_walk_result({_, {:error, reason}}), do: {:error, reason}
 
-  # We should walk AST manually as `Marcro.prewalk/2` visits `A.b` in `&A.b/1`.
-  defp inject_recursively({:&, _, _} = ast) do
-    {:ok, {ast, []}}
-  end
+  defp expand_recursively!(ast, env) do
+    ast
+    |> Macro.prewalk(fn
+      {:@, _, _} = ast ->
+        ast
 
-  defp inject_recursively({{:., _dot_ctx, [remote_mod, name]}, _call_ctx, args})
-       when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
-    with {:ok, {injected_args, captures}} <- args |> inject_recursively() do
-      capture = function_capture_ast(remote_mod, name, Enum.count(args))
-
-      injected_call =
-        quote do
-          (deps[unquote(capture)] || unquote(capture)).(unquote_splicing(injected_args))
-        end
-
-      {:ok, {injected_call, [capture | captures]}}
-    end
-  end
-
-  defp inject_recursively({func, ctx, args}) when is_list(args) do
-    with {:ok, {injected_args, captures}} <- inject_recursively(args) do
-      {:ok, {{func, ctx, injected_args}, captures}}
-    end
-  end
-
-  defp inject_recursively(asts) when is_list(asts) do
-    asts
-    |> Enum.reverse()
-    |> Enum.reduce_while({:ok, {[], []}}, fn ast, {:ok, {injected_asts, captures}} ->
-      case inject_recursively(ast) do
-        {:ok, {injected_ast, new_captures}} ->
-          {:cont, {:ok, {[injected_ast | injected_asts], new_captures ++ captures}}}
-
-        {:error, reason} ->
-          {:halt, {:error, reason}}
-      end
+      ast ->
+        Macro.expand(ast, env)
     end)
   end
 
-  defp inject_recursively({left, right}) do
-    with {:ok, {left, left_captures}} <- inject_recursively(left),
-         {:ok, {right, right_captures}} <- inject_recursively(right) do
-      {:ok, {{left, right}, left_captures ++ right_captures}}
-    end
+  defp mark_remote_call_recursively!(ast) do
+    ast
+    |> Macro.prewalk(fn
+      {:&, c1, [{:/, c2, [{{:., c3, [mod, name]}, c4, []}, arity]}]} ->
+        {:&, c1, [{:/, c2, [{{:., c3, [mod, name]}, [{:skip_inject, true} | c4], []}, arity]}]}
+
+      ast ->
+        ast
+    end)
   end
 
-  defp inject_recursively(ast) do
-    {:ok, {ast, []}}
+  defp inject_recursively!(ast) do
+    ast
+    |> Macro.postwalk([], fn ast, captures ->
+      {injected_ast, new_caputres} = inject(ast)
+      {injected_ast, new_caputres ++ captures}
+    end)
+  end
+
+  defp inject({_func, [{:skip_inject, true} | _], _args} = ast) do
+    {ast, []}
+  end
+
+  defp inject({{:., _dot_ctx, [remote_mod, name]}, _call_ctx, args})
+       when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
+    capture = function_capture_ast(remote_mod, name, Enum.count(args))
+
+    injected_call =
+      quote do
+        (deps[unquote(capture)] || unquote(capture)).(unquote_splicing(args))
+      end
+
+    {injected_call, [capture]}
+  end
+
+  defp inject(ast) do
+    {ast, []}
   end
 
   def head_with_deps({:when, when_ctx, [call_head, when_cond]}) do

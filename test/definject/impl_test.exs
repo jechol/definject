@@ -66,6 +66,19 @@ defmodule InjectImplTest do
   end
 
   describe "process_body_recursively" do
+    test "capture is not expanded" do
+      body =
+        quote do
+          &Calc.sum/2
+        end
+
+      expected_ast = body
+
+      {:ok, {actual_ast, actual_captures}} = Impl.process_body_recusively(body, __ENV__)
+      assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
+      assert actual_captures == []
+    end
+
     test "indirect import is allowed" do
       require Calc
 
