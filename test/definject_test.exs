@@ -4,7 +4,8 @@ defmodule InjectTest do
 
   defmodule Nested do
     defmodule DoubleNested do
-      def to_int(str), do: String.to_integer(str)
+      defdelegate to_int(str), to: String, as: :to_integer
+      defdelegate to_atom(str), to: String, as: :to_atom
     end
   end
 
@@ -27,7 +28,7 @@ defmodule InjectTest do
           # Remote
           :mod -> __MODULE__.quack()
           :remote -> Enum.count([1, 2])
-          :nested_remote -> DoubleNested.to_int("99")
+          :nested_remote -> {DoubleNested.to_int("99"), DoubleNested.to_atom("hello")}
           :pipe -> "1" |> Foo.id()
           :macro -> Calc.macro_sum(10, 20)
           :capture -> &Calc.sum/2
@@ -63,10 +64,28 @@ defmodule InjectTest do
                <<93, 65, 64, 42, 188, 75, 42, 118, 185, 113, 157, 145, 16, 23, 197, 146>>
     end
 
+    defmodule Baz do
+      def quack, do: "baz quack"
+      def to_int, do: "baz to_int"
+      def to_atom, do: "baz to_atom"
+    end
+
     test "working case" do
       assert Foo.bar(:mod, %{&Foo.quack/0 => fn -> :injected end}) == :injected
+      assert Foo.bar(:mod, %{Foo => Baz}) == "baz quack"
       assert Foo.bar(:remote, %{&Enum.count/1 => fn _ -> 9999 end}) == 9999
-      assert Foo.bar(:nested_remote, %{&DoubleNested.to_int/1 => fn _ -> 6 end}) == 6
+
+      assert Foo.bar(:nested_remote, %{
+               &DoubleNested.to_int/1 => &Baz.to_int/1,
+               &DoubleNested.to_atom/1 => &Baz.to_atom/1
+             }) == {"baz to_int", "baz_to_atom"}
+
+      assert Foo.bar(:nested_remote, %{DoubleNested => Baz}) == {"baz to_int", "baz_to_atom"}
+
+      assert Foo.bar(
+               :nested_remote,
+               mock(%{DoubleNested => Baz, &DoubleNested.to_atom/1 => :mocked})
+             ) == {"baz to_int", :mocked}
 
       assert Foo.bar(:pipe, %{&Foo.id/1 => fn _ -> "100" end, &Enum.count/1 => fn _ -> 9999 end}) ==
                "100"
@@ -77,7 +96,7 @@ defmodule InjectTest do
       assert Foo.hash("hello", %{&:crypto.hash/2 => fn _, _ -> :world end}) == :world
     end
 
-    test "capture" do
+    test "should skipping capture" do
       assert_raise RuntimeError, ~r(unused.*Foo.bar/1), fn ->
         Foo.bar(:capture, mock(%{&Calc.sum/2 => 100}))
       end
@@ -85,7 +104,25 @@ defmodule InjectTest do
       assert Foo.bar(:capture, mock(%{&Calc.sum/2 => 100, strict: false})).(100, 200) == 300
     end
 
-    test "unused" do
+    test "unused module" do
+      assert_raise RuntimeError, ~r/unused module/, fn ->
+        Foo.bar(:remote, mock(%{UnusedModule => Baz}))
+      end
+
+      assert Foo.bar(:remote, mock(%{UnusedModule => Baz, strict: false})) == 2
+    end
+
+    test "uninjectable module" do
+      assert_raise RuntimeError, ~r/Uninjectable module Kernel/, fn ->
+        Foo.bar(:remote, mock(%{Kernel => Baz}))
+      end
+
+      assert_raise RuntimeError, ~r/Uninjectalbe module :erlang/, fn ->
+        Foo.bar(:remote, mock(%{:erlang => Baz}))
+      end
+    end
+
+    test "unused function" do
       assert_raise RuntimeError, ~r/unused/, fn ->
         Foo.bar(:remote, mock(%{&Enum.map/2 => 100}))
       end
@@ -93,22 +130,22 @@ defmodule InjectTest do
       assert Foo.bar(:remote, mock(%{&Enum.map/2 => 100, strict: false})) == 2
     end
 
-    test "local" do
+    test "inject local call" do
       assert_raise RuntimeError, ~r/Local/, fn ->
         Foo.bar(:local, %{&quack/0 => fn -> nil end})
       end
     end
 
-    test "uninjectable" do
-      assert_raise RuntimeError, ~r/Uninjectable/, fn ->
+    test "uninjectable module for function" do
+      assert_raise RuntimeError, ~r(Uninjectable.* :erlang.+/2), fn ->
         Foo.bar(:remote, %{&:erlang.+/2 => fn _ -> nil end})
       end
 
-      assert_raise RuntimeError, ~r/Uninjectable/, fn ->
+      assert_raise RuntimeError, ~r(Uninjectable.* Kernel.+2), fn ->
         Foo.bar(:remote, %{&Kernel.+/2 => fn _, _ -> 999 end})
       end
 
-      assert_raise RuntimeError, ~r/Uninjectable/, fn ->
+      assert_raise RuntimeError, ~r(Uninjectable.* String.to_integer/1), fn ->
         Foo.bar(:remote, %{&String.to_integer/1 => fn _ -> 9090 end})
       end
     end

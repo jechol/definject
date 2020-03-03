@@ -105,12 +105,20 @@ defmodule Definject.Inject do
   defp inject({{:., _dot_ctx, [mod, name]}, _call_ctx, args} = ast)
        when is_atom(name) and is_list(args) do
     if AST.unquote_alias(mod) not in @uninjectable do
-      mfa = {mod, name, Enum.count(args)}
-      capture = AST.quote_function_capture(mfa)
+      arity = Enum.count(args)
+      capture = AST.quote_function_capture({mod, name, arity})
 
       injected_call =
         quote do
-          (deps[unquote(capture)] || unquote(capture)).(unquote_splicing(args))
+          Map.get(
+            deps,
+            unquote(capture),
+            :erlang.make_fun(
+              Map.get(deps, unquote(mod), unquote(mod)),
+              unquote(name),
+              unquote(arity)
+            )
+          ).(unquote_splicing(args))
         end
 
       {injected_call, [capture]}
