@@ -13,21 +13,4 @@ defmodule Definject.Mock do
     mfa = {:/, [], [mf, arity]}
     {:&, [], [mfa]}
   end
-
-  def unquote_function_capture({mod_ast, name, arity}) do
-    mod = mod_ast |> unquote_module()
-    :erlang.make_fun(mod, name, arity)
-  end
-
-  defp unquote_module({:__aliases__, [alias: mod], _}) when is_atom(mod) and mod != false do
-    mod
-  end
-
-  defp unquote_module({:__aliases__, _, atoms}) do
-    Module.concat(atoms)
-  end
-
-  defp unquote_module(atom) when is_atom(atom) do
-    atom
-  end
 end
