@@ -49,8 +49,35 @@ defmodule Definject do
       end
   """
   defmacro definject(head, do: body) do
+    original =
+      quote do
+        def unquote(head), do: unquote(body)
+      end
+
     if Application.get_env(:definject, :enable, Mix.env() == :test) do
-      Impl.inject_function(%{head: head, body: body, env: __CALLER__})
+      injected = Impl.inject_function(%{head: head, body: body, env: __CALLER__})
+
+      if Application.get_env(:definject, :trace, false) do
+        %{file: file, line: line} = __CALLER__
+
+        IO.puts("definject converting #{file}:#{line}")
+        IO.puts("Before >>>")
+        IO.puts(original |> Macro.to_string())
+        IO.puts("After >>>")
+        IO.puts(injected |> Macro.to_string())
+      end
+
+      injected
+    else
+      original
+    end
+  end
+
+  defmacro definspect(head, do: body) do
+    if Application.get_env(:definject, :enable, Mix.env() == :test) do
+      ast = Impl.inject_function(%{head: head, body: body, env: __CALLER__})
+      ast |> Macro.to_string() |> IO.puts()
+      ast
     else
       quote do
         def unquote(head), do: unquote(body)

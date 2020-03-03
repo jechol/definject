@@ -5,9 +5,13 @@ defmodule Definject.Check do
   def validate_deps(used_captures, %{} = deps) do
     used_captures = used_captures |> Enum.sort() |> Enum.uniq()
     strict = Map.get(deps, :strict, true)
-    deps = Map.drop(deps, [:strict])
+    injected_deps = Map.drop(deps, [:strict])
 
-    for {capture, _} <- deps do
+    for {capture, _} <- injected_deps do
+      if Application.get_env(:definject, :trace, false) do
+        IO.puts("Validating #{capture |> inspect} against #{used_captures |> inspect()}")
+      end
+
       with :ok <- confirm_type_is_external(capture),
            :ok <- confirm_module_is_injectable(capture),
            :ok <-
