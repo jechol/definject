@@ -76,8 +76,8 @@ defmodule Definject do
   Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end` when expanded.
   """
   defmacro mock({:%{}, context, mocks}) do
-    alias Definject.Inject
+    alias Definject.Mock
 
-    {:%{}, context, mocks |> Enum.map(&Inject.surround_by_fn/1)}
+    {:%{}, context, mocks |> Enum.map(&Mock.surround_by_fn/1)}
   end
 end

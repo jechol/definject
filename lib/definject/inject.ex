@@ -67,7 +67,7 @@ defmodule Definject.Inject do
   defp inject_recursively({{:., _dot_ctx, [remote_mod, name]}, _call_ctx, args})
        when remote_mod not in @uninjectable and is_atom(name) and is_list(args) do
     with {:ok, {injected_args, captures}} <- args |> inject_recursively() do
-      capture = function_capture_ast(remote_mod, name, Enum.count(args))
+      capture = Definject.Mock.function_capture_ast(remote_mod, name, Enum.count(args))
 
       injected_call =
         quote do
@@ -127,28 +127,5 @@ defmodule Definject.Inject do
       end
 
     {name, meta, params ++ [deps]}
-  end
-
-  # For mock/1
-
-  def surround_by_fn({{:&, _, [capture]}, v}) do
-    {:/, _, [mf, a]} = capture
-    {mf, _, []} = mf
-    {:., _, [m, f]} = mf
-
-    capture = function_capture_ast(m, f, a)
-    const_fn = {:fn, [], [{:->, [], [Macro.generate_arguments(a, __MODULE__), v]}]}
-
-    {capture, const_fn}
-  end
-
-  def surround_by_fn({:strict, _} = orig) do
-    orig
-  end
-
-  defp function_capture_ast(remote_mod, name, arity) do
-    mf = {{:., [], [remote_mod, name]}, [], []}
-    mfa = {:/, [], [mf, arity]}
-    {:&, [], [mfa]}
   end
 end
