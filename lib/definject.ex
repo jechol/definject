@@ -13,7 +13,7 @@ defmodule Definject do
 
   is expanded into
 
-      def send_welcome_email(user_id, deps \\\\ %{}) do
+      def send_welcome_email(user_id, %{} = deps \\\\ %{}) do
         %{email: email} = (deps[&Repo.get/2] || &Repo.get/2).(User, user_id)
 
         welcome_email(to: email)
