@@ -1,7 +1,7 @@
-defmodule InjectImplTest do
+defmodule DefInject.InjectTest do
   use ExUnit.Case, async: true
-  require Definject.Impl
-  alias Definject.Impl
+  require Definject.Inject
+  alias Definject.Inject
 
   describe "head_with_deps" do
     test "with parenthesis" do
@@ -15,7 +15,7 @@ defmodule InjectImplTest do
           add(a, b, %{} = deps \\ %{})
         end
 
-      actual_head = Impl.head_with_deps(head)
+      actual_head = Inject.head_with_deps(head)
       assert Macro.to_string(actual_head) == Macro.to_string(expected_head)
     end
 
@@ -30,7 +30,7 @@ defmodule InjectImplTest do
           add(%{} = deps \\ %{})
         end
 
-      actual_head = Impl.head_with_deps(head)
+      actual_head = Inject.head_with_deps(head)
       assert Macro.to_string(actual_head) == Macro.to_string(expected_head)
     end
 
@@ -45,7 +45,7 @@ defmodule InjectImplTest do
           add(a = 1, b, %{} = deps \\ %{}) when (is_number(a) and is_number(b)) or is_string(a)
         end
 
-      actual_head = Impl.head_with_deps(head)
+      actual_head = Inject.head_with_deps(head)
       assert Macro.to_string(actual_head) == Macro.to_string(expected_head)
     end
 
@@ -60,7 +60,7 @@ defmodule InjectImplTest do
           add(<<data::binary>>, %{} = deps \\ %{})
         end
 
-      actual_head = Impl.head_with_deps(head)
+      actual_head = Inject.head_with_deps(head)
       assert Macro.to_string(actual_head) == Macro.to_string(expected_head)
     end
   end
@@ -98,7 +98,7 @@ defmodule InjectImplTest do
           [&Math.pow/2]
         end
 
-      {:ok, {actual_ast, actual_captures}} = Impl.process_body_recusively(body, __ENV__)
+      {:ok, {actual_ast, actual_captures}} = Inject.process_body_recusively(body, __ENV__)
       assert Macro.to_string(actual_ast) == Macro.to_string(expected_ast)
       assert Macro.to_string(actual_captures) == Macro.to_string(expected_captures)
     end
@@ -111,7 +111,7 @@ defmodule InjectImplTest do
           sum(a, b)
         end
 
-      {:error, :import} = Impl.process_body_recusively(body, __ENV__)
+      {:error, :import} = Inject.process_body_recusively(body, __ENV__)
     end
   end
 
@@ -142,7 +142,7 @@ defmodule InjectImplTest do
         end
       end
 
-    actual = Impl.inject_function(%{head: head, body: body, env: env_with_macros()})
+    actual = Inject.inject_function(%{head: head, body: body, env: env_with_macros()})
     assert Macro.to_string(actual) == Macro.to_string(expected)
   end
 

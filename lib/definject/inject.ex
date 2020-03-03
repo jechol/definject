@@ -1,4 +1,4 @@
-defmodule Definject.Impl do
+defmodule Definject.Inject do
   @moduledoc false
   @uninjectable quote(do: [:erlang])
   @modifiers [:import, :require, :use]

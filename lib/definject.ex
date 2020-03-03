@@ -1,6 +1,4 @@
 defmodule Definject do
-  alias Definject.Impl
-
   @doc """
   `definject` transforms a function to accept a map where dependent functions can be injected.
 
@@ -49,8 +47,10 @@ defmodule Definject do
       end
   """
   defmacro definject(head, do: body) do
+    alias Definject.Inject
+
     if Application.get_env(:definject, :enable, Mix.env() == :test) do
-      Impl.inject_function(%{head: head, body: body, env: __CALLER__})
+      Inject.inject_function(%{head: head, body: body, env: __CALLER__})
     else
       quote do
         def unquote(head), do: unquote(body)
@@ -76,6 +76,8 @@ defmodule Definject do
   Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end` when expanded.
   """
   defmacro mock({:%{}, context, mocks}) do
-    {:%{}, context, mocks |> Enum.map(&Impl.surround_by_fn/1)}
+    alias Definject.Inject
+
+    {:%{}, context, mocks |> Enum.map(&Inject.surround_by_fn/1)}
   end
 end
