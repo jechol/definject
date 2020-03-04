@@ -148,21 +148,21 @@ defmodule InjectTest do
       end
     end
 
-    # test "function arity mismatch" do
-    #   assert_raise RuntimeError, ~r(Function arity mismatches), fn ->
-    #     Foo.bar(:_, %{&Foo.id/1 => fn -> nil end})
-    #   end
-    # end
+    test "type mismatch" do
+      assert_raise RuntimeError, ~r(Type mismatches), fn ->
+        Foo.bar(:_, %{&Foo.id/1 => Foo})
+      end
 
-    # test "type mismatch" do
-    #   assert_raise RuntimeError, ~r(Type mismatches), fn ->
-    #     Foo.bar(:_, %{&Foo.id/1 => Foo})
-    #   end
+      assert_raise RuntimeError, ~r(Type mismatches), fn ->
+        Foo.bar(:_, %{Foo => &Foo.id/1})
+      end
+    end
 
-    #   assert_raise RuntimeError, ~r(Type mismatches), fn ->
-    #     Foo.bar(:_, %{Foo => &Foo.id/1})
-    #   end
-    # end
+    test "function arity mismatch" do
+      assert_raise RuntimeError, ~r(Function arity mismatches), fn ->
+        Foo.bar(:_, %{&Foo.id/1 => fn -> nil end})
+      end
+    end
   end
 
   test "mock" do

@@ -5,26 +5,25 @@ defmodule Definject.Check do
 
   def validate_deps(%{} = deps, {used_captures, used_mods}, {mod, name, arity}) do
     outer_function = "#{mod}.#{name}/#{arity}"
-    used_captures = used_captures |> Enum.sort() |> Enum.uniq()
-    used_mods = used_mods |> Enum.sort() |> Enum.uniq()
+    used_captures = used_captures |> Enum.uniq()
+    used_mods = used_mods |> Enum.uniq()
 
     strict = Map.get(deps, :strict, true)
-    dep_keys = deps |> Map.keys() |> Enum.uniq() |> List.delete(:strict)
-
-    # dep_captures = dep_keys |> Map.filter(&is_function/1)
-    # dep_mods = dep_keys |> Map.filter(&is_atom/1)
+    deps = deps |> Map.drop([:strict])
 
     if Application.get_env(:definject, :trace, false) do
       IO.puts(
-        "Validating depedencies for #{dep_keys |> inspect} against #{
+        "Validating depedencies for #{deps |> Map.keys() |> inspect} against #{
           {used_captures, used_mods} |> inspect
         }"
       )
     end
 
-    for key <- dep_keys do
+    for {key, value} <- deps do
       with :ok <- validate_injectable(key),
-           :ok <- validate_used(key, {used_captures, used_mods}, strict: strict) do
+           :ok <- validate_used(key, {used_captures, used_mods}, strict: strict),
+           :ok <- validate_same_type(key, value),
+           :ok <- validate_same_arity(key, value) do
         :ok
       else
         {:error, {:uninjectable_local, function}} ->
@@ -35,6 +34,12 @@ defmodule Definject.Check do
 
         {:error, {:unused, key}} ->
           raise "#{inspect(key)} is unused in #{outer_function}. Add `strict: false` to disable this."
+
+        {:error, :type_mismatch} ->
+          raise "Type mismatches between #{inspect(key)} and #{inspect(value)}."
+
+        {:error, :arity_mismatch} ->
+          raise "Function arity mismatches between #{inspect(key)} and #{inspect(value)}."
       end
     end
   end
@@ -73,6 +78,23 @@ defmodule Definject.Check do
       :ok
     else
       {:error, {:unused, key}}
+    end
+  end
+
+  defp validate_same_type(f1, f2) when is_function(f1) and is_function(f2), do: :ok
+  defp validate_same_type(m1, m2) when is_atom(m1) and is_atom(m2), do: :ok
+  defp validate_same_type(_, _), do: {:error, :type_mismatch}
+
+  defp validate_same_arity(m1, m2) when is_atom(m1) and is_atom(m2), do: :ok
+
+  defp validate_same_arity(f1, f2) when is_function(f1) and is_function(f2) do
+    {:arity, a1} = :erlang.fun_info(f1, :arity)
+    {:arity, a2} = :erlang.fun_info(f2, :arity)
+
+    if a1 == a2 do
+      :ok
+    else
+      {:error, :arity_mismatch}
     end
   end
 end
