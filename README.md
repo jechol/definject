@@ -40,7 +40,7 @@ in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:definject, "~> 0.6.1"}]
+  [{:definject, "~> 0.7.0"}]
 end
 ```
 

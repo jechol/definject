@@ -1,4 +1,4 @@
-defmodule InjectTest do
+defmodule DefinjectTest do
   use ExUnit.Case, async: true
   import Definject
 
