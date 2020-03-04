@@ -54,7 +54,7 @@ config :definject, :enable, true
 
 ### definject
 
-`definject` transforms a function to accept a map where dependent functions can be injected.
+`definject` transforms a function to accept a map where dependent functions and modules can be injected.
 
 ```elixir
 import Definject
@@ -71,22 +71,22 @@ is expanded into
 
 ```elixir
 def send_welcome_email(user_id, %{} = deps \\ %{}) do
-  %{email: email} = (deps[&Repo.get/2] || &Repo.get/2).(User, user_id)
+  %{email: email} = Map.get(deps, &Repo.get/2, :erlang.make_fun(Map.get(deps, Repo, Repo), :get, 2)).(User, user_id)
 
   welcome_email(to: email)
-  |> (deps[&Mailer.send/1] || &Mailer.send/1).()
+  |> Map.get(deps, &Mailer.send/1, :erlang.make_fun(Map.get(deps, Mailer, Mailer), :send, 1)).()
 end
 ```
 
 Note that local function calls like `welcome_email(to: email)` are not expanded unless it is prepended with `__MODULE__`.
 
-Now, you can inject mock functions in tests.
+Now, you can inject mock functions and modules in tests.
 
 ```elixir
 test "send_welcome_email" do
   Accounts.send_welcome_email(100, %{
-    &Repo.get/2 => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
-    &Mailer.send/1 => fn %Email{to: "mr.jechol@gmail.com", subject: "Welcome"} ->
+    Repo => MockRepo,
+    &Mailer.send/1 => fn %Email{to: "user100@gmail.com", subject: "Welcome"} ->
       Process.send(self(), :email_sent)
     end
   })
@@ -95,14 +95,14 @@ test "send_welcome_email" do
 end
 ```
 
-`definject` raises if the passed map includes a function that's not called within the injected function.
+`definject` raises if the passed map includes a function or a module that's not used within the injected function.
 You can disable this by adding `strict: false` option.
 
 ```elixir
 test "send_welcome_email with strict: false" do
   Accounts.send_welcome_email(100, %{
-    &Repo.get/2 => fn User, 100 -> %User{email: "mr.jechol@gmail.com"} end,
-    &Repo.all/1 => fn _ -> [%User{email: "mr.jechol@gmail.com"}] end, # Unused
+    &Repo.get/2 => fn User, 100 -> %User{email: "user100@gmail.com"} end,
+    &Repo.all/1 => fn _ -> [%User{email: "user100@gmail.com"}] end, # Unused
     strict: false,
   })
 end
@@ -119,7 +119,7 @@ test "send_welcome_email with mock/1" do
   Accounts.send_welcome_email(
     100,
     mock(%{
-      &Repo.get/2 => %User{email: "mr.jechol@gmail.com"},
+      Repo => MockRepo,
       &Mailer.send/1 => Process.send(self(), :email_sent)
     })
   )
