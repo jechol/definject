@@ -22,4 +22,9 @@ defmodule Definject.AST do
     mfa = {:/, [], [mf, arity]}
     {:&, [], [mfa]}
   end
+
+  def unquote_function_capture({:&, _, [{:/, _, [{{:., _, [mod, name]}, _, _}, arity]}]}) do
+    mod = unquote_alias(mod)
+    :erlang.make_fun(mod, name, arity)
+  end
 end

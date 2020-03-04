@@ -49,7 +49,7 @@ defmodule InjectTest do
     test "original works" do
       assert Foo.bar(:mod) == :arity_0_quack
       assert Foo.bar(:remote) == 2
-      assert Foo.bar(:nested_remote) == 99
+      assert Foo.bar(:nested_remote) == {99, :hello}
       assert Foo.bar(:pipe) == "1"
       assert Foo.bar(:macro) == 30
       assert Foo.bar(:capture).(20, 40) == 60
@@ -66,8 +66,8 @@ defmodule InjectTest do
 
     defmodule Baz do
       def quack, do: "baz quack"
-      def to_int, do: "baz to_int"
-      def to_atom, do: "baz to_atom"
+      def to_int(_), do: "baz to_int"
+      def to_atom(_), do: "baz to_atom"
     end
 
     test "working case" do
@@ -78,9 +78,9 @@ defmodule InjectTest do
       assert Foo.bar(:nested_remote, %{
                &DoubleNested.to_int/1 => &Baz.to_int/1,
                &DoubleNested.to_atom/1 => &Baz.to_atom/1
-             }) == {"baz to_int", "baz_to_atom"}
+             }) == {"baz to_int", "baz to_atom"}
 
-      assert Foo.bar(:nested_remote, %{DoubleNested => Baz}) == {"baz to_int", "baz_to_atom"}
+      assert Foo.bar(:nested_remote, %{DoubleNested => Baz}) == {"baz to_int", "baz to_atom"}
 
       assert Foo.bar(
                :nested_remote,
@@ -105,7 +105,7 @@ defmodule InjectTest do
     end
 
     test "unused module" do
-      assert_raise RuntimeError, ~r/unused module/, fn ->
+      assert_raise RuntimeError, ~r/UnusedModule is unused in.*Foo.bar/, fn ->
         Foo.bar(:remote, mock(%{UnusedModule => Baz}))
       end
 
@@ -117,7 +117,7 @@ defmodule InjectTest do
         Foo.bar(:remote, mock(%{Kernel => Baz}))
       end
 
-      assert_raise RuntimeError, ~r/Uninjectalbe module :erlang/, fn ->
+      assert_raise RuntimeError, ~r/Uninjectable module :erlang/, fn ->
         Foo.bar(:remote, mock(%{:erlang => Baz}))
       end
     end
@@ -130,25 +130,39 @@ defmodule InjectTest do
       assert Foo.bar(:remote, mock(%{&Enum.map/2 => 100, strict: false})) == 2
     end
 
-    test "inject local call" do
-      assert_raise RuntimeError, ~r/Local/, fn ->
-        Foo.bar(:local, %{&quack/0 => fn -> nil end})
-      end
-    end
-
     test "uninjectable module for function" do
-      assert_raise RuntimeError, ~r(Uninjectable.* :erlang.+/2), fn ->
-        Foo.bar(:remote, %{&:erlang.+/2 => fn _ -> nil end})
+      assert_raise RuntimeError, ~r(Uninjectable module :erlang), fn ->
+        Foo.bar(:_, %{&:erlang.+/2 => fn _ -> nil end})
       end
 
-      assert_raise RuntimeError, ~r(Uninjectable.* Kernel.+2), fn ->
-        Foo.bar(:remote, %{&Kernel.+/2 => fn _, _ -> 999 end})
+      assert_raise RuntimeError, ~r(Uninjectable module :erlang), fn ->
+        Foo.bar(:_, %{&Kernel.+/2 => fn _, _ -> 999 end})
       end
 
-      assert_raise RuntimeError, ~r(Uninjectable.* String.to_integer/1), fn ->
-        Foo.bar(:remote, %{&String.to_integer/1 => fn _ -> 9090 end})
+      assert_raise RuntimeError, ~r(Uninjectable module :erlang), fn ->
+        Foo.bar(:_, %{&String.to_integer/1 => fn _ -> 9090 end})
+      end
+
+      assert_raise RuntimeError, ~r/Uninjectable local function/, fn ->
+        Foo.bar(:_, %{&quack/0 => fn -> nil end})
       end
     end
+
+    # test "function arity mismatch" do
+    #   assert_raise RuntimeError, ~r(Function arity mismatches), fn ->
+    #     Foo.bar(:_, %{&Foo.id/1 => fn -> nil end})
+    #   end
+    # end
+
+    # test "type mismatch" do
+    #   assert_raise RuntimeError, ~r(Type mismatches), fn ->
+    #     Foo.bar(:_, %{&Foo.id/1 => Foo})
+    #   end
+
+    #   assert_raise RuntimeError, ~r(Type mismatches), fn ->
+    #     Foo.bar(:_, %{Foo => &Foo.id/1})
+    #   end
+    # end
   end
 
   test "mock" do

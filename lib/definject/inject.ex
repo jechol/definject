@@ -7,7 +7,7 @@ defmodule Definject.Inject do
   @modifiers [:import, :require, :use]
 
   def inject_function(head, body, %Macro.Env{module: mod, file: file, line: line} = env) do
-    with {:ok, {injected_body, captures}} <- body |> process_body_recusively(env) do
+    with {:ok, {injected_body, captures, mods}} <- body |> process_body_recusively(env) do
       injected_head = head_with_deps(head)
       {name, arity} = get_fa(head)
 
@@ -15,7 +15,7 @@ defmodule Definject.Inject do
         def unquote(injected_head) do
           Definject.Check.validate_deps(
             deps,
-            unquote(captures),
+            {unquote(captures), unquote(mods)},
             unquote(Macro.escape({mod, name, arity}))
           )
 
@@ -41,13 +41,13 @@ defmodule Definject.Inject do
 
   def process_body_recusively(body, env) do
     with {:ok, ^body} <- body |> check_no_modifier_recursively() do
-      {injected_body, captures} =
+      {injected_body, {captures, mods}} =
         body
         |> expand_recursively!(env)
         |> mark_remote_call_recursively!()
         |> inject_recursively!()
 
-      {:ok, {injected_body, captures}}
+      {:ok, {injected_body, captures, mods}}
     end
   end
 
@@ -92,14 +92,14 @@ defmodule Definject.Inject do
 
   defp inject_recursively!(ast) do
     ast
-    |> Macro.postwalk([], fn ast, captures ->
-      {injected_ast, new_caputres} = inject(ast)
-      {injected_ast, new_caputres ++ captures}
+    |> Macro.postwalk({[], []}, fn ast, {captures, mods} ->
+      {injected_ast, new_caputres, new_mods} = inject(ast)
+      {injected_ast, {new_caputres ++ captures, new_mods ++ mods}}
     end)
   end
 
   defp inject({_func, [{:skip_inject, true} | _], _args} = ast) do
-    {ast, []}
+    {ast, [], []}
   end
 
   defp inject({{:., _dot_ctx, [mod, name]}, _call_ctx, args} = ast)
@@ -121,14 +121,14 @@ defmodule Definject.Inject do
           ).(unquote_splicing(args))
         end
 
-      {injected_call, [capture]}
+      {injected_call, [capture], [mod]}
     else
-      {ast, []}
+      {ast, [], []}
     end
   end
 
   defp inject(ast) do
-    {ast, []}
+    {ast, [], []}
   end
 
   def head_with_deps({:when, when_ctx, [name_args, when_cond]}) do
