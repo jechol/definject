@@ -10,17 +10,22 @@ on:
     - master
 
 jobs:
-  build:
+  test:
 
+    name: Test on elixir ${{ matrix.elixir }} and otp ${{ matrix.otp }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        elixir: ['1.7.0', '1.8.0']
+        otp: ['20.0.0', '21.0.0']
 
     steps:
     - uses: actions/checkout@v2
     - name: Setup elixir
       uses: actions/setup-elixir@v1
       with:
-        elixir-version: 1.7.0 # Define the elixir version [required]
-        otp-version: 20.0 # Define the OTP version [required]
+        elixir-version: ${{ matrix.elixir }}
+        otp-version: ${{ matrix.otp }}
     - name: Install Dependencies
       run: mix deps.get
     - name: Run Tests
