@@ -3,30 +3,25 @@ name: Elixir CI
 on:
   push:
     branches:
-    - master
-    - dev/*
+      - master
+      - dev/*
   pull_request:
     branches:
-    - master
+      - master
 
 jobs:
   test:
-
-    name: Test on elixir ${{ matrix.elixir }} and otp ${{ matrix.otp }}
     runs-on: ubuntu-latest
+    name: Test on OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
       matrix:
-        elixir: ['1.7.0', '1.8.0']
-        otp: ['20.0.0', '21.0.0']
-
+        otp: [20.0 21.0]
+        elixir: [1.7.0, 1.8.0]
     steps:
-    - uses: actions/checkout@v2
-    - name: Setup elixir
-      uses: actions/setup-elixir@v1
-      with:
-        elixir-version: ${{ matrix.elixir }}
-        otp-version: ${{ matrix.otp }}
-    - name: Install Dependencies
-      run: mix deps.get
-    - name: Run Tests
-      run: mix test
+      - uses: actions/checkout@v2
+      - uses: actions/setup-elixir@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.elixir}}
+      - run: mix deps.get
+      - run: mix test
