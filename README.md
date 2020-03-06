@@ -2,7 +2,7 @@
 
 [![Hex version badge](https://img.shields.io/hexpm/v/definject.svg)](https://hex.pm/packages/definject)
 [![License badge](https://img.shields.io/hexpm/l/definject.svg)](https://github.com/chain-partners/definject/blob/master/LICENSE.md)
-![Elixir CI](https://github.com/chain-partners/definject/workflows/Elixir%20CI/badge.svg)
+[![Elixir CI](https://github.com/chain-partners/definject/workflows/Elixir%20CI/badge.svg)](https://github.com/chain-partners/definject/actions)
 
 Unobtrusive Dependency Injector for Elixir
 
