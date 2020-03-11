@@ -77,6 +77,16 @@ defmodule Definject.InjectTest do
       assert_inject(actual, {body, [], []})
     end
 
+    test "access is not expanded" do
+      body =
+        quote do
+          conn.assigns
+        end
+
+      {:ok, actual} = Inject.process_body_recusively(body, __ENV__)
+      assert_inject(actual, {body, [], []})
+    end
+
     test ":erlang is not expanded" do
       body =
         quote do

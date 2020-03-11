@@ -104,7 +104,7 @@ defmodule Definject.Inject do
 
   defp inject({{:., _dot_ctx, [mod, name]}, _call_ctx, args} = ast)
        when is_atom(name) and is_list(args) do
-    if AST.unquote_alias(mod) not in @uninjectable do
+    if AST.is_module_ast(mod) and AST.unquote_module_ast(mod) not in @uninjectable do
       arity = Enum.count(args)
       capture = AST.quote_function_capture({mod, name, arity})
 
