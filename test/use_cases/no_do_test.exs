@@ -1,4 +1,6 @@
 defmodule Definject.NoDoTest do
+  import Definject
+
   defmodule ForDoc do
     definject add(a, b)
 

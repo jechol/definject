@@ -1,7 +1,9 @@
 defmodule Definject.MostComplexTest do
+  import Definject
+
   defmodule Complex do
-    definject div(a, b)
     definject div(a, b \\ 1)
+    definject div(a, b)
 
     definject div(a, 1) do
       a

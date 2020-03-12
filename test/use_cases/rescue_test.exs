@@ -1,4 +1,6 @@
 defmodule Definject.RescueTest do
+  import Definject
+
   defmodule Rescue do
     definject div(a, b) do
       if b == 0 do
