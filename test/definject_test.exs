@@ -38,6 +38,7 @@ defmodule DefinjectTest do
           # Local, Import
           :local -> quack()
           :import -> first([10, 20])
+          :anonymous_fun -> [1, 2] |> Enum.map(&Calc.id(&1))
         end
       end
 
@@ -59,6 +60,7 @@ defmodule DefinjectTest do
 
       assert Foo.bar(:local) == :arity_0_quack
       assert Foo.bar(:import) == 10
+      assert Foo.bar(:anonymous_fun) == [1, 2]
 
       assert Foo.hash("hello") ==
                <<93, 65, 64, 42, 188, 75, 42, 118, 185, 113, 157, 145, 16, 23, 197, 146>>
@@ -96,12 +98,18 @@ defmodule DefinjectTest do
       assert Foo.hash("hello", %{&:crypto.hash/2 => fn _, _ -> :world end}) == :world
     end
 
-    test "should skipping capture" do
-      assert_raise RuntimeError, ~r(unused.*Foo.bar/1), fn ->
+    test "should skip capture" do
+      assert_raise RuntimeError, ~r(Calc.sum/2.*unused.*Foo.bar/1), fn ->
         Foo.bar(:capture, mock(%{&Calc.sum/2 => 100}))
       end
 
       assert Foo.bar(:capture, mock(%{&Calc.sum/2 => 100, strict: false})).(100, 200) == 300
+    end
+
+    test "should skip anonymous function" do
+      assert_raise RuntimeError, ~r(Calc.id/1.*unused.*Foo.bar/1), fn ->
+        Foo.bar(:anonymous_fun, %{&Calc.id/1 => fn _ -> 100 end})
+      end
     end
 
     test "unused module" do
@@ -124,7 +132,7 @@ defmodule DefinjectTest do
 
     test "unused function" do
       assert_raise RuntimeError, ~r/unused/, fn ->
-        Foo.bar(:remote, mock(%{&Enum.map/2 => 100}))
+        Foo.bar(:remote, mock(%{&Enum.min_max_by/3 => 100}))
       end
 
       assert Foo.bar(:remote, mock(%{&Enum.map/2 => 100, strict: false})) == 2

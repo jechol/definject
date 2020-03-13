@@ -136,6 +136,9 @@ defmodule Definject.Inject do
       {:&, c1, [{:/, c2, [{{:., c3, [mod, name]}, c4, []}, arity]}]} ->
         {:&, c1, [{:/, c2, [{{:., c3, [mod, name]}, [{:skip_inject, true} | c4], []}, arity]}]}
 
+      {:&, c1, [{{:., c2, [mod, name]}, c3, args}]} ->
+        {:&, c1, [{{:., c2, [mod, name]}, [{:skip_inject, true} | c3], args}]}
+
       ast ->
         ast
     end)
