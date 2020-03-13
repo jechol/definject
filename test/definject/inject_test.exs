@@ -4,6 +4,98 @@ defmodule Definject.InjectTest do
   alias Definject.Inject
   alias Definject.AST
 
+  describe "call_for_head" do
+    test "with parenthesis" do
+      head =
+        quote do
+          add(a, b)
+        end
+
+      exp_head =
+        quote do
+          add(a, b, deps \\ %{})
+        end
+
+      actual_head = Inject.call_for_head(head)
+      assert Macro.to_string(actual_head) == Macro.to_string(exp_head)
+    end
+
+    test "without parenthesis" do
+      head =
+        quote do
+          add
+        end
+
+      exp_head =
+        quote do
+          add(deps \\ %{})
+        end
+
+      actual_head = Inject.call_for_head(head)
+      assert Macro.to_string(actual_head) == Macro.to_string(exp_head)
+    end
+
+    test "with when" do
+      head =
+        quote do
+          add(a, b) when (is_number(a) and is_number(b)) or is_string(a)
+        end
+
+      exp_head =
+        quote do
+          add(a, b, deps \\ %{})
+        end
+
+      actual_head = Inject.call_for_head(head)
+      assert Macro.to_string(actual_head) == Macro.to_string(exp_head)
+    end
+
+    test "with default" do
+      head =
+        quote do
+          add(a, b \\ 0)
+        end
+
+      exp_head =
+        quote do
+          add(a, b \\ 0, deps \\ %{})
+        end
+
+      actual_head = Inject.call_for_head(head)
+      assert Macro.to_string(actual_head) == Macro.to_string(exp_head)
+    end
+
+    test "with pattern matching" do
+      head =
+        quote do
+          add(a = 0 = 0, 0 = b = b2, 0)
+        end
+
+      exp_head =
+        quote do
+          add(a, b, var2, deps \\ %{})
+        end
+
+      actual_head = Inject.call_for_head(head)
+      assert Macro.to_string(actual_head) == Macro.to_string(exp_head)
+    end
+
+    test "with default and pattern matching" do
+      head =
+        quote do
+          add(0 = b \\ 1)
+        end
+
+      exp_head =
+        quote do
+          add(b, deps \\ %{})
+        end
+
+      actual_head = Inject.call_for_head(head)
+      assert Macro.to_string(actual_head) == Macro.to_string(exp_head)
+    end
+  end
+
   describe "call_for_clause" do
     test "with parenthesis" do
       head =
@@ -38,27 +130,42 @@ defmodule Definject.InjectTest do
     test "with when" do
       head =
         quote do
-          add(a = 1, b) when (is_number(a) and is_number(b)) or is_string(a)
+          add(a, b) when (is_number(a) and is_number(b)) or is_string(a)
         end
 
       exp_head =
         quote do
-          add(a = 1, b, deps) when (is_number(a) and is_number(b)) or is_string(a)
+          add(a, b, deps) when (is_number(a) and is_number(b)) or is_string(a)
         end
 
       actual_head = Inject.call_for_clause(head)
       assert Macro.to_string(actual_head) == Macro.to_string(exp_head)
     end
 
-    test "binary pattern matching" do
+    test "with pattern matching" do
       head =
         quote do
-          add(<<data::binary>>)
+          add(a = 1, b)
         end
 
       exp_head =
         quote do
-          add(<<data::binary>>, deps)
+          add(a = 1, b, deps)
+        end
+
+      actual_head = Inject.call_for_clause(head)
+      assert Macro.to_string(actual_head) == Macro.to_string(exp_head)
+    end
+
+    test "with default" do
+      head =
+        quote do
+          add(a, b \\ 0)
+        end
+
+      exp_head =
+        quote do
+          add(a, b, deps)
         end
 
       actual_head = Inject.call_for_clause(head)

@@ -160,8 +160,8 @@ defmodule Definject.Inject do
       end
 
     # def div(n, 0) -> def div(a, b)
-    orig_args = params |> Enum.count() |> Macro.generate_arguments(__MODULE__)
-    {name, meta, orig_args ++ [deps]}
+    params = params |> Enum.map(&AST.remove_pattern_matching/1)
+    {name, meta, params ++ [deps]}
   end
 
   def call_for_clause({:when, when_ctx, [name_args, when_cond]}) do
@@ -178,6 +178,7 @@ defmodule Definject.Inject do
   def call_for_clause({name, meta, params}) when is_list(params) do
     deps = quote do: deps
 
+    params = params |> Enum.map(&AST.remove_default_value/1)
     {name, meta, params ++ [deps]}
   end
 

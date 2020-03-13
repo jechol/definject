@@ -31,4 +31,25 @@ defmodule Definject.AST do
     mod = unquote_module_ast(mod)
     :erlang.make_fun(mod, name, arity)
   end
+
+  def remove_pattern_matching({:=, _, [{name, _, module} = param, _pattern]})
+      when is_atom(name) and is_atom(module) do
+    param
+  end
+
+  def remove_pattern_matching({:=, _, [_pattern, next_pattern]}) do
+    remove_pattern_matching(next_pattern)
+  end
+
+  def remove_pattern_matching(param) do
+    param |> IO.inspect()
+  end
+
+  def remove_default_value({:\\, _, [param, _default]}) do
+    param
+  end
+
+  def remove_default_value(param) do
+    param
+  end
 end
