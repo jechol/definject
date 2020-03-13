@@ -343,8 +343,6 @@ defmodule Definject.InjectTest do
                 import Calc
                 sum(a, b)
             end
-          rescue
-            e -> reraise(e, __STACKTRACE__)
           end
         end
 

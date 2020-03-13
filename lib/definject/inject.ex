@@ -6,7 +6,7 @@ defmodule Definject.Inject do
   @uninjectable [:erlang, Kernel, Kernel.Utils]
   @modifiers [:import, :require, :use]
 
-  def inject_function(head, [], _env) do
+  defp inject_head(head) do
     call_for_head = call_for_head(head)
     fa = get_fa(head)
 
@@ -20,13 +20,17 @@ defmodule Definject.Inject do
     end
   end
 
-  def inject_function(head, [do: body], %Macro.Env{} = env) do
-    resq =
-      quote do
-        e -> reraise(e, __STACKTRACE__)
-      end
+  def inject_function(head, [], _env) do
+    inject_head(head)
+  end
 
-    process_resq_result = {:ok, {resq, [], []}}
+  def inject_function(head, [do: body], %Macro.Env{} = env) do
+    # resq =
+    #   quote do
+    #     e -> reraise(e, __STACKTRACE__)
+    #   end
+
+    process_resq_result = {:ok, {nil, [], []}}
     do_inject_function(head, process_body_recusively(body, env), process_resq_result, env)
   end
 
@@ -47,29 +51,39 @@ defmodule Definject.Inject do
         head,
         process_body_result,
         process_resq_result,
-        %Macro.Env{module: mod, file: file, line: line} = env
+        %Macro.Env{module: mod, file: file, line: line}
       ) do
     with {:ok, {injected_body, body_captures, body_mods}} <- process_body_result,
          {:ok, {injected_resq, resq_captures, resq_mods}} <- process_resq_result do
       call_for_clause = call_for_clause(head)
       {name, arity} = get_fa(head)
 
-      injected_head = inject_function(head, [], env)
+      injected_head = inject_head(head)
+
+      do_block =
+        {:do,
+         quote do
+           Definject.Check.validate_deps(
+             deps,
+             {unquote(body_captures ++ resq_captures), unquote(body_mods ++ resq_mods)},
+             unquote(Macro.escape({mod, name, arity}))
+           )
+
+           unquote(injected_body)
+         end}
+
+      resq_block =
+        case injected_resq do
+          nil -> []
+          _ -> [{:rescue, injected_resq}]
+        end
+
+      def_body = [do_block | resq_block]
 
       quote do
         unquote(injected_head)
 
-        def unquote(call_for_clause) do
-          Definject.Check.validate_deps(
-            deps,
-            {unquote(body_captures ++ resq_captures), unquote(body_mods ++ resq_mods)},
-            unquote(Macro.escape({mod, name, arity}))
-          )
-
-          unquote(injected_body)
-        rescue
-          unquote(injected_resq)
-        end
+        def unquote(call_for_clause), unquote(def_body)
       end
     else
       {:error, :modifier} ->
@@ -90,6 +104,10 @@ defmodule Definject.Inject do
 
   defp get_fa({name, _, _}) do
     {name, 0}
+  end
+
+  def process_body_recusively(nil, _env) do
+    {:ok, {nil, [], []}}
   end
 
   def process_body_recusively(body, env) do
