@@ -344,7 +344,7 @@ defmodule Definject.InjectTest do
                 sum(a, b)
             end
           rescue
-            []
+            e -> :erlang.error(:erlang.raise(:error, Kernel.Utils.raise(e), __STACKTRACE__))
           end
         end
 

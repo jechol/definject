@@ -11,13 +11,13 @@ defmodule Definject do
         |> Mailer.send()
       end
 
-  is expanded into
+  is expanded into (simplified for understanding)
 
       def send_welcome_email(user_id, deps \\\\ %{}) do
-        %{email: email} = Map.get(deps, &Repo.get/2, :erlang.make_fun(Map.get(deps, Repo, Repo), :get, 2)).(User, user_id)
+        %{email: email} = Map.get(deps, &Repo.get/2, &Repo.get/2).(User, user_id)
 
         welcome_email(to: email)
-        |> Map.get(deps, &Mailer.send/1, :erlang.make_fun(Map.get(deps, Mailer, Mailer), :send, 1)).()
+        |> Map.get(deps, &Mailer.send/1, &Mailer.send/1).()
       end
 
   Note that local function calls like `welcome_email(to: email)` are not expanded unless it is prepended with `__MODULE__`.

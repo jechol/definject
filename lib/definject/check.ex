@@ -1,7 +1,7 @@
 defmodule Definject.Check do
   @moduledoc false
 
-  @uninjectable [:erlang, Kernel]
+  @uninjectable [:erlang, Kernel, Kernel.Utils]
 
   def validate_deps(deps, {used_captures, used_mods}, {mod, name, arity}) do
     outer_function = "#{mod}.#{name}/#{arity}"

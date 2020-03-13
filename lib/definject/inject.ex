@@ -3,7 +3,7 @@ defmodule Definject.Inject do
 
   alias Definject.AST
 
-  @uninjectable [:erlang, Kernel]
+  @uninjectable [:erlang, Kernel, Kernel.Utils]
   @modifiers [:import, :require, :use]
 
   def inject_function(head, [], _env) do
@@ -21,7 +21,12 @@ defmodule Definject.Inject do
   end
 
   def inject_function(head, [do: body], %Macro.Env{} = env) do
-    inject_function(head, [do: body, rescue: []], env)
+    resq =
+      quote do
+        e -> reraise(e, __STACKTRACE__)
+      end
+
+    inject_function(head, [do: body, rescue: resq], env)
   end
 
   def inject_function(
