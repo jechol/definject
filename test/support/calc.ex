@@ -27,20 +27,4 @@ defmodule Calc do
   rescue
     ArithmeticError -> :error
   end
-
-  Module.register_attribute(__MODULE__, :a, accumulate: true)
-
-  unless {:add, 2} in Module.get_attribute(__MODULE__, :a) do
-    IO.puts("!!!!!")
-  end
-
-  @a {:add, 2}
-  unless {:add, 2} in Module.get_attribute(__MODULE__, :a) do
-    IO.puts("!!!!!")
-  end
-
-  @a {:add, 2}
-  unless {:add, 2} in Module.get_attribute(__MODULE__, :a) do
-    IO.puts("!!!!!")
-  end
 end

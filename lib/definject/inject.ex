@@ -159,7 +159,9 @@ defmodule Definject.Inject do
         deps \\ %{}
       end
 
-    {name, meta, params ++ [deps]}
+    # def div(n, 0) -> def div(a, b)
+    orig_args = params |> Enum.count() |> Macro.generate_arguments(__MODULE__)
+    {name, meta, orig_args ++ [deps]}
   end
 
   def call_for_clause({:when, when_ctx, [name_args, when_cond]}) do
