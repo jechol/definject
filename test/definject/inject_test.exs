@@ -316,12 +316,14 @@ defmodule Definject.InjectTest do
 
       expected =
         quote do
-          Module.register_attribute(__MODULE__, :definjected, accumulate: true)
+          (
+            Module.register_attribute(__MODULE__, :definjected, accumulate: true)
 
-          unless {:add, 2} in Module.get_attribute(__MODULE__, :definjected) do
-            def add(a, b, deps \\ %{})
-            @definjected {:add, 2}
-          end
+            unless {:add, 2} in Module.get_attribute(__MODULE__, :definjected) do
+              def add(a, b, deps \\ %{})
+              @definjected {:add, 2}
+            end
+          )
 
           def add(a, b, deps) do
             Definject.Check.validate_deps(
@@ -341,10 +343,12 @@ defmodule Definject.InjectTest do
                 import Calc
                 sum(a, b)
             end
+          rescue
+            []
           end
         end
 
-      actual = Inject.inject_function(head, body, env_with_macros())
+      actual = Inject.inject_function(head, [do: body], env_with_macros())
       assert Macro.to_string(actual) == Macro.to_string(expected)
     end
 

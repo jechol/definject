@@ -47,57 +47,34 @@ defmodule Definject do
       end
   """
   defmacro definject(head, do: body) do
-    alias Definject.Inject
-
-    original =
-      quote do
-        def unquote(head), do: unquote(body)
-      end
-
-    if Application.get_env(:definject, :enable, Mix.env() == :test) do
-      injected = Inject.inject_function(head, body, __CALLER__)
-      trace_if_enabled(original, injected, __CALLER__)
-      injected
-    else
-      original
-    end
+    do_definject(head, [do: body], __CALLER__)
   end
 
   defmacro definject(head, do: body, rescue: resq) do
-    alias Definject.Inject
-
-    original =
-      quote do
-        def unquote(head), do: unquote(body), rescue: unquote(resq)
-      end
-
-    if Application.get_env(:definject, :enable, Mix.env() == :test) do
-      injected = Inject.inject_function(head, body, resq, __CALLER__)
-      trace_if_enabled(original, injected, __CALLER__)
-      injected
-    else
-      original
-    end
+    do_definject(head, [do: body, rescue: resq], __CALLER__)
   end
 
   defmacro definject(head) do
+    do_definject(head, [], __CALLER__)
+  end
+
+  defp do_definject(head, body_and_resq, %Macro.Env{} = env) do
     alias Definject.Inject
 
     original =
       quote do
-        def unquote(head)
+        def unquote(head), unquote(body_and_resq)
       end
 
     if Application.get_env(:definject, :enable, Mix.env() == :test) do
-      injected = Inject.inject_function(head, __CALLER__)
-      trace_if_enabled(original, injected, __CALLER__)
-      injected
+      Inject.inject_function(head, body_and_resq, env)
+      |> trace(original, env)
     else
       original
     end
   end
 
-  defp trace_if_enabled(original, injected, %Macro.Env{file: file, line: line}) do
+  defp trace(injected, original, %Macro.Env{file: file, line: line}) do
     if Application.get_env(:definject, :trace, false) do
       dash = "=============================="
 

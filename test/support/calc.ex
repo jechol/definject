@@ -1,5 +1,6 @@
 defmodule Calc do
   def sum(a, b), do: a + b
+  def div(a, b), do: a / b
   def to_int(str), do: String.to_integer(str)
 
   def id(a), do: a
@@ -10,6 +11,4 @@ defmodule Calc do
       sum(unquote(a), unquote(b))
     end
   end
-
-  def div(a, b), do: a / b
 end

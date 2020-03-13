@@ -6,7 +6,7 @@ defmodule Definject.Inject do
   @uninjectable [:erlang, Kernel]
   @modifiers [:import, :require, :use]
 
-  def inject_function(head, %Macro.Env{} = _env) do
+  def inject_function(head, [], _env) do
     call_for_head = call_for_head(head)
     fa = get_fa(head)
 
@@ -20,53 +20,24 @@ defmodule Definject.Inject do
     end
   end
 
-  def inject_function(head, body, %Macro.Env{module: mod, file: file, line: line} = env) do
-    with {:ok, {injected_body, captures, mods}} <- body |> process_body_recusively(env) do
-      call_for_head = call_for_head(head)
-      call_for_clause = call_for_clause(head)
-      fa = {name, arity} = get_fa(head)
-
-      quote do
-        Module.register_attribute(__MODULE__, :definjected, accumulate: true)
-
-        unless unquote(fa) in Module.get_attribute(__MODULE__, :definjected) do
-          def unquote(call_for_head)
-          @definjected unquote(fa)
-        end
-
-        def unquote(call_for_clause) do
-          Definject.Check.validate_deps(
-            deps,
-            {unquote(captures), unquote(mods)},
-            unquote(Macro.escape({mod, name, arity}))
-          )
-
-          unquote(injected_body)
-        end
-      end
-    else
-      {:error, :modifier} ->
-        raise CompileError,
-          file: file,
-          line: line,
-          description: "Cannot import/require/use inside definject. Move it to module level."
-    end
+  def inject_function(head, [do: body], %Macro.Env{} = env) do
+    inject_function(head, [do: body, rescue: []], env)
   end
 
-  def inject_function(head, body, resq, %Macro.Env{module: mod, file: file, line: line} = env) do
+  def inject_function(
+        head,
+        [do: body, rescue: resq],
+        %Macro.Env{module: mod, file: file, line: line} = env
+      ) do
     with {:ok, {injected_body, body_captures, body_mods}} <- body |> process_body_recusively(env),
          {:ok, {injected_resq, resq_captures, resq_mods}} <- resq |> process_body_recusively(env) do
-      call_for_head = call_for_head(head)
       call_for_clause = call_for_clause(head)
-      fa = {name, arity} = get_fa(head)
+      {name, arity} = get_fa(head)
+
+      injected_head = inject_function(head, [], env)
 
       quote do
-        Module.register_attribute(__MODULE__, :definjected, accumulate: true)
-
-        unless unquote(fa) in Module.get_attribute(__MODULE__, :definjected) do
-          def unquote(call_for_head)
-          @definjected unquote(fa)
-        end
+        unquote(injected_head)
 
         def unquote(call_for_clause) do
           Definject.Check.validate_deps(
