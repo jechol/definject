@@ -25,36 +25,16 @@ defmodule Definject.Inject do
   end
 
   def inject_function(head, [do: body], %Macro.Env{} = env) do
-    # resq =
-    #   quote do
-    #     e -> reraise(e, __STACKTRACE__)
-    #   end
-
-    process_resq_result = {:ok, {nil, [], []}}
-    do_inject_function(head, process_body_recusively(body, env), process_resq_result, env)
+    inject_function(head, [do: body, rescue: nil], env)
   end
 
   def inject_function(
         head,
         [do: body, rescue: resq],
-        env
+        %Macro.Env{module: mod, file: file, line: line} = env
       ) do
-    do_inject_function(
-      head,
-      process_body_recusively(body, env),
-      process_body_recusively(resq, env),
-      env
-    )
-  end
-
-  def do_inject_function(
-        head,
-        process_body_result,
-        process_resq_result,
-        %Macro.Env{module: mod, file: file, line: line}
-      ) do
-    with {:ok, {injected_body, body_captures, body_mods}} <- process_body_result,
-         {:ok, {injected_resq, resq_captures, resq_mods}} <- process_resq_result do
+    with {:ok, {injected_body, body_captures, body_mods}} <- inject_ast_recursively(body, env),
+         {:ok, {injected_resq, resq_captures, resq_mods}} <- inject_ast_recursively(resq, env) do
       call_for_clause = call_for_clause(head)
       {name, arity} = get_fa(head)
 
@@ -106,11 +86,11 @@ defmodule Definject.Inject do
     {name, 0}
   end
 
-  def process_body_recusively(nil, _env) do
+  def inject_ast_recursively(nil, _env) do
     {:ok, {nil, [], []}}
   end
 
-  def process_body_recusively(body, env) do
+  def inject_ast_recursively(body, env) do
     with {:ok, ^body} <- body |> check_no_modifier_recursively() do
       {injected_body, {captures, mods}} =
         body

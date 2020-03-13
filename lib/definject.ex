@@ -46,12 +46,8 @@ defmodule Definject do
         })
       end
   """
-  defmacro definject(head, do: body) do
-    do_definject(head, [do: body], __CALLER__)
-  end
-
-  defmacro definject(head, do: body, rescue: resq) do
-    do_definject(head, [do: body, rescue: resq], __CALLER__)
+  defmacro definject(head, body_and_resq) do
+    do_definject(head, body_and_resq, __CALLER__)
   end
 
   defmacro definject(head) do

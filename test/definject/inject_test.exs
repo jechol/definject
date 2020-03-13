@@ -180,7 +180,7 @@ defmodule Definject.InjectTest do
           &Calc.sum/2
         end
 
-      {:ok, actual} = Inject.process_body_recusively(body, __ENV__)
+      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
       assert_inject(actual, {body, [], []})
     end
 
@@ -190,7 +190,7 @@ defmodule Definject.InjectTest do
           conn.assigns
         end
 
-      {:ok, actual} = Inject.process_body_recusively(body, __ENV__)
+      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
       assert_inject(actual, {body, [], []})
     end
 
@@ -201,7 +201,7 @@ defmodule Definject.InjectTest do
           Kernel.+(100, 200)
         end
 
-      {:ok, actual} = Inject.process_body_recusively(body, __ENV__)
+      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
       assert_inject(actual, {body, [], []})
     end
 
@@ -236,7 +236,7 @@ defmodule Definject.InjectTest do
           end
         end
 
-      {:ok, actual} = Inject.process_body_recusively(body, __ENV__)
+      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
       assert_inject(actual, {exp_ast, [&Math.pow/2], [Math]})
     end
 
@@ -248,7 +248,7 @@ defmodule Definject.InjectTest do
           sum(a, b)
         end
 
-      {:error, :modifier} = Inject.process_body_recusively(body, __ENV__)
+      {:error, :modifier} = Inject.inject_ast_recursively(body, __ENV__)
     end
 
     test "operator case 1" do
@@ -271,7 +271,7 @@ defmodule Definject.InjectTest do
             end
         end
 
-      {:ok, actual} = Inject.process_body_recusively(body, __ENV__)
+      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
       assert_inject(actual, {exp_ast, [&Calc.to_int/1, &Calc.to_int/1], [Calc, Calc]})
     end
 
@@ -297,7 +297,7 @@ defmodule Definject.InjectTest do
             end
         end
 
-      {:ok, actual} = Inject.process_body_recusively(body, __ENV__)
+      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
       assert_inject(actual, {exp_ast, [&Calc.to_int/1, &Calc.to_int/1], [Calc, Calc]})
     end
   end
