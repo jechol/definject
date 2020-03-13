@@ -133,15 +133,25 @@ defmodule Definject.Inject do
   defp mark_remote_call_recursively!(ast) do
     ast
     |> Macro.prewalk(fn
-      {:&, c1, [{:/, c2, [{{:., c3, [mod, name]}, c4, []}, arity]}]} ->
-        {:&, c1, [{:/, c2, [{{:., c3, [mod, name]}, [{:skip_inject, true} | c4], []}, arity]}]}
+      # capture
+      {:&, c1, [{:/, c2, [mf, arity]}]} ->
+        {:&, c1, [{:/, c2, [mf |> skip_inject(), arity]}]}
 
-      {:&, c1, [{{:., c2, [mod, name]}, c3, args}]} ->
-        {:&, c1, [{{:., c2, [mod, name]}, [{:skip_inject, true} | c3], args}]}
+      # anonymous
+      {:&, c1, [anonymous_fn]} ->
+        {:&, c1, [anonymous_fn |> skip_inject()]}
 
       ast ->
         ast
     end)
+  end
+
+  defp skip_inject({f, context, args}) when is_list(context) and is_list(args) do
+    {f, [{:skip_inject, true} | context], args |> Enum.map(&skip_inject/1)}
+  end
+
+  defp skip_inject(ast) do
+    ast
   end
 
   defp inject_recursively!(ast) do

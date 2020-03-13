@@ -39,6 +39,7 @@ defmodule DefinjectTest do
           :local -> quack()
           :import -> first([10, 20])
           :anonymous_fun -> [1, 2] |> Enum.map(&Calc.id(&1))
+          :string_concat -> "#{[1, 2] |> Enum.map(&"*#{&1}*") |> Enum.join()}"
         end
       end
 
@@ -61,6 +62,7 @@ defmodule DefinjectTest do
       assert Foo.bar(:local) == :arity_0_quack
       assert Foo.bar(:import) == 10
       assert Foo.bar(:anonymous_fun) == [1, 2]
+      assert Foo.bar(:string_concat) == "*1**2*"
 
       assert Foo.hash("hello") ==
                <<93, 65, 64, 42, 188, 75, 42, 118, 185, 113, 157, 145, 16, 23, 197, 146>>
