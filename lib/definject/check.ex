@@ -3,7 +3,7 @@ defmodule Definject.Check do
 
   @uninjectable [:erlang, Kernel]
 
-  def validate_deps(%{} = deps, {used_captures, used_mods}, {mod, name, arity}) do
+  def validate_deps(deps, {used_captures, used_mods}, {mod, name, arity}) do
     outer_function = "#{mod}.#{name}/#{arity}"
     used_captures = used_captures |> Enum.uniq()
     used_mods = used_mods |> Enum.uniq()

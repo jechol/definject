@@ -4,7 +4,7 @@ defmodule Definject.InjectTest do
   alias Definject.Inject
   alias Definject.AST
 
-  describe "head_with_deps" do
+  describe "call_for_clause" do
     test "with parenthesis" do
       head =
         quote do
@@ -13,10 +13,10 @@ defmodule Definject.InjectTest do
 
       exp_head =
         quote do
-          add(a, b, %{} = deps \\ %{})
+          add(a, b, deps)
         end
 
-      actual_head = Inject.head_with_deps(head)
+      actual_head = Inject.call_for_clause(head)
       assert Macro.to_string(actual_head) == Macro.to_string(exp_head)
     end
 
@@ -28,10 +28,10 @@ defmodule Definject.InjectTest do
 
       exp_head =
         quote do
-          add(%{} = deps \\ %{})
+          add(deps)
         end
 
-      actual_head = Inject.head_with_deps(head)
+      actual_head = Inject.call_for_clause(head)
       assert Macro.to_string(actual_head) == Macro.to_string(exp_head)
     end
 
@@ -43,10 +43,10 @@ defmodule Definject.InjectTest do
 
       exp_head =
         quote do
-          add(a = 1, b, %{} = deps \\ %{}) when (is_number(a) and is_number(b)) or is_string(a)
+          add(a = 1, b, deps) when (is_number(a) and is_number(b)) or is_string(a)
         end
 
-      actual_head = Inject.head_with_deps(head)
+      actual_head = Inject.call_for_clause(head)
       assert Macro.to_string(actual_head) == Macro.to_string(exp_head)
     end
 
@@ -58,10 +58,10 @@ defmodule Definject.InjectTest do
 
       exp_head =
         quote do
-          add(<<data::binary>>, %{} = deps \\ %{})
+          add(<<data::binary>>, deps)
         end
 
-      actual_head = Inject.head_with_deps(head)
+      actual_head = Inject.call_for_clause(head)
       assert Macro.to_string(actual_head) == Macro.to_string(exp_head)
     end
   end
@@ -209,7 +209,14 @@ defmodule Definject.InjectTest do
 
       expected =
         quote do
-          def add(a, b, %{} = deps \\ %{}) do
+          Module.register_attribute(__MODULE__, :definjected, accumulate: true)
+
+          unless {:add, 2} in Module.get_attribute(__MODULE__, :definjected) do
+            def add(a, b, deps \\ %{})
+            @definjected {:add, 2}
+          end
+
+          def add(a, b, deps) do
             Definject.Check.validate_deps(
               deps,
               {[&Calc.sum/2], [Calc]},

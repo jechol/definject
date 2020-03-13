@@ -8,11 +8,19 @@ defmodule Definject.Inject do
 
   def inject_function(head, body, %Macro.Env{module: mod, file: file, line: line} = env) do
     with {:ok, {injected_body, captures, mods}} <- body |> process_body_recusively(env) do
-      injected_head = head_with_deps(head)
-      {name, arity} = get_fa(head)
+      call_for_head = call_for_head(head)
+      call_for_clause = call_for_clause(head)
+      fa = {name, arity} = get_fa(head)
 
       quote do
-        def unquote(injected_head) do
+        Module.register_attribute(__MODULE__, :definjected, accumulate: true)
+
+        unless unquote(fa) in Module.get_attribute(__MODULE__, :definjected) do
+          def unquote(call_for_head)
+          @definjected unquote(fa)
+        end
+
+        def unquote(call_for_clause) do
           Definject.Check.validate_deps(
             deps,
             {unquote(captures), unquote(mods)},
@@ -35,8 +43,12 @@ defmodule Definject.Inject do
     get_fa(name_args)
   end
 
-  defp get_fa({name, _, args}) do
+  defp get_fa({name, _, args}) when is_list(args) do
     {name, args |> Enum.count()}
+  end
+
+  defp get_fa({name, _, _}) do
+    {name, 0}
   end
 
   def process_body_recusively(body, env) do
@@ -131,23 +143,51 @@ defmodule Definject.Inject do
     {ast, [], []}
   end
 
-  def head_with_deps({:when, when_ctx, [name_args, when_cond]}) do
-    name_args = head_with_deps(name_args)
-    {:when, when_ctx, [name_args, when_cond]}
+  def call_for_head({:when, _when_ctx, [name_args, _when_cond]}) do
+    call_for_head(name_args)
   end
 
-  def head_with_deps({name, meta, context}) when not is_list(context) do
+  def call_for_head({name, meta, context}) when not is_list(context) do
     # Normalize function head.
     # def some do: nil end   ->   def some(), do: nil end
-    head_with_deps({name, meta, []})
+    call_for_head({name, meta, []})
   end
 
-  def head_with_deps({name, meta, params}) when is_list(params) do
+  def call_for_head({name, meta, params}) when is_list(params) do
     deps =
       quote do
-        %{} = deps \\ %{}
+        deps \\ %{}
       end
 
     {name, meta, params ++ [deps]}
+  end
+
+  def call_for_clause({:when, when_ctx, [name_args, when_cond]}) do
+    name_args = call_for_clause(name_args)
+    {:when, when_ctx, [name_args, when_cond]}
+  end
+
+  def call_for_clause({name, meta, context}) when not is_list(context) do
+    # Normalize function head.
+    # def some do: nil end   ->   def some(), do: nil end
+    call_for_clause({name, meta, []})
+  end
+
+  def call_for_clause({name, meta, params}) when is_list(params) do
+    deps = quote do: deps
+
+    {name, meta, params ++ [deps]}
+  end
+
+  def get_name_arity({:when, _when_ctx, [name_args, _when_cond]}) do
+    get_name_arity(name_args)
+  end
+
+  def get_name_arity({name, _, context}) when not is_list(context) do
+    {name, 0}
+  end
+
+  def get_name_arity({name, _, params}) when is_list(params) do
+    {name, params |> Enum.count()}
   end
 end

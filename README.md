@@ -71,7 +71,7 @@ end
 is expanded into
 
 ```elixir
-def send_welcome_email(user_id, %{} = deps \\ %{}) do
+def send_welcome_email(user_id, deps \\ %{}) do
   %{email: email} = Map.get(deps, &Repo.get/2, :erlang.make_fun(Map.get(deps, Repo, Repo), :get, 2)).(User, user_id)
 
   welcome_email(to: email)
