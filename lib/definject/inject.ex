@@ -125,6 +125,9 @@ defmodule Definject.Inject do
       {:@, _, _} = ast ->
         ast
 
+      {:in, _, _} = ast ->
+        ast
+
       ast ->
         Macro.expand(ast, env)
     end)
@@ -140,6 +143,10 @@ defmodule Definject.Inject do
       # anonymous
       {:&, c1, [anonymous_fn]} ->
         {:&, c1, [anonymous_fn |> skip_inject()]}
+
+      # rescue pattern matching
+      {:->, c1, [left, right]} ->
+        {:->, c1, [left |> Enum.map(&skip_inject/1), right]}
 
       ast ->
         ast

@@ -300,6 +300,48 @@ defmodule Definject.InjectTest do
       {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
       assert_inject(actual, {exp_ast, [&Calc.to_int/1, &Calc.to_int/1], [Calc, Calc]})
     end
+
+    test "try case 1" do
+      body =
+        quote do
+          try do
+            Calc.id(:try)
+          else
+            x -> Calc.id(:else)
+          rescue
+            e in ArithmeticError -> Calc.id(e)
+          catch
+            :error, number -> Calc.id(number)
+          end
+        end
+
+      exp_ast =
+        quote do
+          try do
+            Map.get(deps, &Calc.id/1, :erlang.make_fun(Map.get(deps, Calc, Calc), :id, 1)).(:try)
+          rescue
+            e in ArithmeticError ->
+              Map.get(deps, &Calc.id/1, :erlang.make_fun(Map.get(deps, Calc, Calc), :id, 1)).(e)
+          catch
+            :error, number ->
+              Map.get(deps, &Calc.id/1, :erlang.make_fun(Map.get(deps, Calc, Calc), :id, 1)).(
+                number
+              )
+          else
+            x ->
+              Map.get(deps, &Calc.id/1, :erlang.make_fun(Map.get(deps, Calc, Calc), :id, 1)).(
+                :else
+              )
+          end
+        end
+
+      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
+
+      assert_inject(
+        actual,
+        {exp_ast, [&Calc.id/1, &Calc.id/1, &Calc.id/1, &Calc.id/1], [Calc, Calc, Calc, Calc]}
+      )
+    end
   end
 
   describe "inject_function" do
