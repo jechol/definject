@@ -6,6 +6,20 @@ defmodule Definject.Inject do
   @uninjectable [:erlang, Kernel]
   @modifiers [:import, :require, :use]
 
+  def inject_function(head, %Macro.Env{} = _env) do
+    call_for_head = call_for_head(head)
+    fa = get_fa(head)
+
+    quote do
+      Module.register_attribute(__MODULE__, :definjected, accumulate: true)
+
+      unless unquote(fa) in Module.get_attribute(__MODULE__, :definjected) do
+        def unquote(call_for_head)
+        @definjected unquote(fa)
+      end
+    end
+  end
+
   def inject_function(head, body, %Macro.Env{module: mod, file: file, line: line} = env) do
     with {:ok, {injected_body, captures, mods}} <- body |> process_body_recusively(env) do
       call_for_head = call_for_head(head)
