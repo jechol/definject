@@ -33,7 +33,11 @@ defmodule Definject.AST do
   end
 
   defmodule Param do
+    @moduledoc false
+
     defmodule Pattern do
+      @moduledoc false
+
       def get_var_name({name, _, module} = param, _index)
           when is_atom(name) and is_atom(module) do
         param

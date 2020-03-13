@@ -51,6 +51,19 @@ By default, `definject` is replaced with `def` in all but the test environment. 
 config :definject, :enable, true
 ```
 
+To format `definject` like `def`, add following to your `.formatter.exs`
+
+```elixir
+[
+  locals_without_parens: [definject: 1, definject: 2],
+  inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"]
+]
+```
+
+## Documentation
+
+API documentation is available at [https://hexdocs.pm/definject](https://hexdocs.pm/definject)
+
 ## Usage
 
 ### definject
@@ -72,10 +85,15 @@ is expanded into (simplified for understanding)
 
 ```elixir
 def send_welcome_email(user_id, deps \\ %{}) do
-  %{email: email} = Map.get(deps, &Repo.get/2, &Repo.get/2).(User, user_id)
+  %{email: email} =
+    Map.get(deps, &Repo.get/2,
+      :erlang.make_fun(Map.get(deps, Repo, Repo), :get, 2)
+    ).(User, user_id)
 
   welcome_email(to: email)
-  |> Map.get(deps, &Mailer.send/1, &Mailer.send/1).()
+  |> Map.get(deps, &Mailer.send/1,
+       :erlang.make_fun(Map.get(deps, Mailer, Mailer), :send, 1)
+     ).()
 end
 ```
 
