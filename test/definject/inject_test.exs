@@ -88,7 +88,7 @@ defmodule Definject.InjectTest do
 
       exp_head =
         quote do
-          add(b, deps \\ %{})
+          add(b \\ 1, deps \\ %{})
         end
 
       actual_head = Inject.call_for_head(head)

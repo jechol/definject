@@ -160,7 +160,11 @@ defmodule Definject.Inject do
       end
 
     # def div(n, 0) -> def div(a, b)
-    params = params |> Enum.map(&AST.remove_pattern_matching/1)
+    params =
+      for {p, index} <- params |> Enum.with_index() do
+        AST.Param.remove_pattern(p, index)
+      end
+
     {name, meta, params ++ [deps]}
   end
 
@@ -178,7 +182,7 @@ defmodule Definject.Inject do
   def call_for_clause({name, meta, params}) when is_list(params) do
     deps = quote do: deps
 
-    params = params |> Enum.map(&AST.remove_default_value/1)
+    params = params |> Enum.map(&AST.Param.remove_default/1)
     {name, meta, params ++ [deps]}
   end
 

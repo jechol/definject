@@ -32,24 +32,50 @@ defmodule Definject.AST do
     :erlang.make_fun(mod, name, arity)
   end
 
-  def remove_pattern_matching({:=, _, [{name, _, module} = param, _pattern]})
-      when is_atom(name) and is_atom(module) do
-    param
-  end
+  defmodule Param do
+    defmodule Pattern do
+      def get_var_name({name, _, module} = param, _index)
+          when is_atom(name) and is_atom(module) do
+        param
+      end
 
-  def remove_pattern_matching({:=, _, [_pattern, next_pattern]}) do
-    remove_pattern_matching(next_pattern)
-  end
+      def get_var_name({:=, _, [{name, _, module} = param, _right_pattern]}, _index)
+          when is_atom(name) and is_atom(module) do
+        param
+      end
 
-  def remove_pattern_matching(param) do
-    param |> IO.inspect()
-  end
+      def get_var_name({:=, _, [_left_pattern, {name, _, module} = param]}, _index)
+          when is_atom(name) and is_atom(module) do
+        param
+      end
 
-  def remove_default_value({:\\, _, [param, _default]}) do
-    param
-  end
+      def get_var_name({:=, _, [_left_pattern, {:=, _, _} = nested_pattern]}, index) do
+        get_var_name(nested_pattern, index)
+      end
 
-  def remove_default_value(param) do
-    param
+      def get_var_name(_param, index) do
+        {:"var#{index}", [], nil}
+      end
+    end
+
+    # for head
+
+    def remove_pattern({:\\, ctx, [pattern, value]}, index) do
+      {:\\, ctx, [Pattern.get_var_name(pattern, index), value]}
+    end
+
+    def remove_pattern(param, index) do
+      Pattern.get_var_name(param, index)
+    end
+
+    # for clause
+
+    def remove_default({:\\, _, [param, _default]}) do
+      param
+    end
+
+    def remove_default(param) do
+      param
+    end
   end
 end
