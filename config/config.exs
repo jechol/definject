@@ -1,3 +1,3 @@
 use Mix.Config
 
-config :definject, :trace, true
+config :definject, :trace, false
