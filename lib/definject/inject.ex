@@ -26,16 +26,31 @@ defmodule Definject.Inject do
         e -> reraise(e, __STACKTRACE__)
       end
 
-    inject_function(head, [do: body, rescue: resq], env)
+    process_resq_result = {:ok, {resq, [], []}}
+    do_inject_function(head, process_body_recusively(body, env), process_resq_result, env)
   end
 
   def inject_function(
         head,
         [do: body, rescue: resq],
+        env
+      ) do
+    do_inject_function(
+      head,
+      process_body_recusively(body, env),
+      process_body_recusively(resq, env),
+      env
+    )
+  end
+
+  def do_inject_function(
+        head,
+        process_body_result,
+        process_resq_result,
         %Macro.Env{module: mod, file: file, line: line} = env
       ) do
-    with {:ok, {injected_body, body_captures, body_mods}} <- body |> process_body_recusively(env),
-         {:ok, {injected_resq, resq_captures, resq_mods}} <- resq |> process_body_recusively(env) do
+    with {:ok, {injected_body, body_captures, body_mods}} <- process_body_result,
+         {:ok, {injected_resq, resq_captures, resq_mods}} <- process_resq_result do
       call_for_clause = call_for_clause(head)
       {name, arity} = get_fa(head)
 
