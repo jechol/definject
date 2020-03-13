@@ -39,6 +39,42 @@ defmodule Definject.Inject do
     end
   end
 
+  def inject_function(head, body, resq, %Macro.Env{module: mod, file: file, line: line} = env) do
+    with {:ok, {injected_body, body_captures, body_mods}} <- body |> process_body_recusively(env),
+         {:ok, {injected_resq, resq_captures, resq_mods}} <- resq |> process_body_recusively(env) do
+      call_for_head = call_for_head(head)
+      call_for_clause = call_for_clause(head)
+      fa = {name, arity} = get_fa(head)
+
+      quote do
+        Module.register_attribute(__MODULE__, :definjected, accumulate: true)
+
+        unless unquote(fa) in Module.get_attribute(__MODULE__, :definjected) do
+          def unquote(call_for_head)
+          @definjected unquote(fa)
+        end
+
+        def unquote(call_for_clause) do
+          Definject.Check.validate_deps(
+            deps,
+            {unquote(body_captures ++ resq_captures), unquote(body_mods ++ resq_mods)},
+            unquote(Macro.escape({mod, name, arity}))
+          )
+
+          unquote(injected_body)
+        rescue
+          unquote(injected_resq)
+        end
+      end
+    else
+      {:error, :modifier} ->
+        raise CompileError,
+          file: file,
+          line: line,
+          description: "Cannot import/require/use inside definject. Move it to module level."
+    end
+  end
+
   defp get_fa({:when, _, [name_args, _when_cond]}) do
     get_fa(name_args)
   end

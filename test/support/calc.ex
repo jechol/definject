@@ -11,20 +11,22 @@ defmodule Calc do
     end
   end
 
-  def div(a, b \\ 1)
-  def div(a, b)
+  def div(a, b), do: a / b
 
-  def div(a, 1) do
-    {:no_div, a}
-  end
+  # def div(a, b \\ 1)
+  # def div(a, b)
 
-  def div(a, b) do
-    if b == 0 do
-      raise ArithmeticError, "div_by_zero"
-    else
-      {:div, a / b}
-    end
-  rescue
-    ArithmeticError -> :error
-  end
+  # def div(a, 1) do
+  #   {:no_div, a}
+  # end
+
+  # def div(a, b) do
+  #   if b == 0 do
+  #     raise ArithmeticError, "div_by_zero"
+  #   else
+  #     {:div, a / b}
+  #   end
+  # rescue
+  #   ArithmeticError -> :error
+  # end
 end

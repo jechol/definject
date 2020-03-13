@@ -76,6 +76,36 @@ defmodule Definject do
     end
   end
 
+  defmacro definject(head, do: body, rescue: resq) do
+    alias Definject.Inject
+
+    original =
+      quote do
+        def unquote(head), do: unquote(body), rescue: unquote(resq)
+      end
+
+    if Application.get_env(:definject, :enable, Mix.env() == :test) do
+      injected = Inject.inject_function(head, body, resq, __CALLER__)
+
+      if Application.get_env(:definject, :trace, false) do
+        %{file: file, line: line} = __CALLER__
+
+        dash = "=============================="
+
+        IO.puts("""
+        #{dash} definject #{file}:#{line} #{dash}
+        #{original |> Macro.to_string()}
+        #{dash} into #{dash}"
+        #{injected |> Macro.to_string()}
+        """)
+      end
+
+      injected
+    else
+      original
+    end
+  end
+
   @doc """
   If you don't need pattern matching in mock function, `mock/1` can be used to reduce boilerplates.
 
