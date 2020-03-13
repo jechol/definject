@@ -54,10 +54,7 @@ config :definject, :enable, true
 To format `definject` like `def`, add following to your `.formatter.exs`
 
 ```elixir
-[
-  locals_without_parens: [definject: 1, definject: 2],
-  inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"]
-]
+locals_without_parens: [definject: 1, definject: 2]
 ```
 
 ## Documentation
@@ -81,7 +78,7 @@ definject send_welcome_email(user_id) do
 end
 ```
 
-is expanded into (simplified for understanding)
+is expanded into (simplified to understand)
 
 ```elixir
 def send_welcome_email(user_id, deps \\ %{}) do
@@ -122,7 +119,7 @@ test "send_welcome_email with strict: false" do
   Accounts.send_welcome_email(100, %{
     &Repo.get/2 => fn User, 100 -> %User{email: "user100@gmail.com"} end,
     &Repo.all/1 => fn _ -> [%User{email: "user100@gmail.com"}] end, # Unused
-    strict: false,
+    strict: false
   })
 end
 ```

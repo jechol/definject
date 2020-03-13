@@ -11,7 +11,7 @@ defmodule Definject do
         |> Mailer.send()
       end
 
-  is expanded into (simplified for understanding)
+  is expanded into (simplified to understand)
 
       def send_welcome_email(user_id, deps \\\\ %{}) do
         %{email: email} =
@@ -47,7 +47,7 @@ defmodule Definject do
         Accounts.send_welcome_email(100, %{
           &Repo.get/2 => fn User, 100 -> %User{email: "user100@gmail.com"} end,
           &Repo.all/1 => fn _ -> [%User{email: "user100@gmail.com"}] end, # Unused
-          strict: false,
+          strict: false
         })
       end
   """
