@@ -56,20 +56,7 @@ defmodule Definject do
 
     if Application.get_env(:definject, :enable, Mix.env() == :test) do
       injected = Inject.inject_function(head, body, __CALLER__)
-
-      if Application.get_env(:definject, :trace, false) do
-        %{file: file, line: line} = __CALLER__
-
-        dash = "=============================="
-
-        IO.puts("""
-        #{dash} definject #{file}:#{line} #{dash}
-        #{original |> Macro.to_string()}
-        #{dash} into #{dash}"
-        #{injected |> Macro.to_string()}
-        """)
-      end
-
+      trace_if_enabled(original, injected, __CALLER__)
       injected
     else
       original
@@ -86,20 +73,7 @@ defmodule Definject do
 
     if Application.get_env(:definject, :enable, Mix.env() == :test) do
       injected = Inject.inject_function(head, body, resq, __CALLER__)
-
-      if Application.get_env(:definject, :trace, false) do
-        %{file: file, line: line} = __CALLER__
-
-        dash = "=============================="
-
-        IO.puts("""
-        #{dash} definject #{file}:#{line} #{dash}
-        #{original |> Macro.to_string()}
-        #{dash} into #{dash}"
-        #{injected |> Macro.to_string()}
-        """)
-      end
-
+      trace_if_enabled(original, injected, __CALLER__)
       injected
     else
       original
@@ -116,24 +90,26 @@ defmodule Definject do
 
     if Application.get_env(:definject, :enable, Mix.env() == :test) do
       injected = Inject.inject_function(head, __CALLER__)
-
-      if Application.get_env(:definject, :trace, false) do
-        %{file: file, line: line} = __CALLER__
-
-        dash = "=============================="
-
-        IO.puts("""
-        #{dash} definject #{file}:#{line} #{dash}
-        #{original |> Macro.to_string()}
-        #{dash} into #{dash}"
-        #{injected |> Macro.to_string()}
-        """)
-      end
-
+      trace_if_enabled(original, injected, __CALLER__)
       injected
     else
       original
     end
+  end
+
+  defp trace_if_enabled(original, injected, %Macro.Env{file: file, line: line}) do
+    if Application.get_env(:definject, :trace, false) do
+      dash = "=============================="
+
+      IO.puts("""
+      #{dash} definject #{file}:#{line} #{dash}
+      #{original |> Macro.to_string()}
+      #{dash} into #{dash}"
+      #{injected |> Macro.to_string()}
+      """)
+    end
+
+    injected
   end
 
   @doc """
