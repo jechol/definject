@@ -105,7 +105,7 @@ defmodule Definject.InjectTest do
 
       exp_head =
         quote do
-          add(a, b, deps)
+          add(a, b, %{} = deps)
         end
 
       actual_head = Inject.call_for_clause(head)
@@ -120,7 +120,7 @@ defmodule Definject.InjectTest do
 
       exp_head =
         quote do
-          add(deps)
+          add(%{} = deps)
         end
 
       actual_head = Inject.call_for_clause(head)
@@ -135,7 +135,7 @@ defmodule Definject.InjectTest do
 
       exp_head =
         quote do
-          add(a, b, deps) when (is_number(a) and is_number(b)) or is_string(a)
+          add(a, b, %{} = deps) when (is_number(a) and is_number(b)) or is_string(a)
         end
 
       actual_head = Inject.call_for_clause(head)
@@ -150,7 +150,7 @@ defmodule Definject.InjectTest do
 
       exp_head =
         quote do
-          add(a = 1, b, deps)
+          add(a = 1, b, %{} = deps)
         end
 
       actual_head = Inject.call_for_clause(head)
@@ -165,7 +165,7 @@ defmodule Definject.InjectTest do
 
       exp_head =
         quote do
-          add(a, b, deps)
+          add(a, b, %{} = deps)
         end
 
       actual_head = Inject.call_for_clause(head)
@@ -367,7 +367,7 @@ defmodule Definject.InjectTest do
             end
           )
 
-          def add(a, b, deps) do
+          def add(a, b, %{} = deps) do
             Definject.Check.validate_deps(
               deps,
               {[&Calc.sum/2], [Calc]},

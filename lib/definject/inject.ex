@@ -239,7 +239,7 @@ defmodule Definject.Inject do
   end
 
   def call_for_clause({name, meta, params}) when is_list(params) do
-    deps = quote do: deps
+    deps = quote do: %{} = deps
 
     params = params |> Enum.map(&AST.Param.remove_default/1)
     {name, meta, params ++ [deps]}
