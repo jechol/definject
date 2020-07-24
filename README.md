@@ -19,7 +19,7 @@ def send_welcome_email(user_id) do
 end
 ```
 
-Here's how you use one of the existing mock libraries:
+Here's how you use one of the existing mock libraries to replace `Repo.get/2` and `Mailer.send/1` with mocks:
 
 ```elixir
 def send_welcome_email(user_id, repo \\ Repo, mailer \\ Mailer) do
