@@ -8,7 +8,7 @@ Unobtrusive Dependency Injector for Elixir
 
 ## Why?
 
-Let's say we want to test following function with mocks for `Repo` and `Mailer`.
+Let's say we want to test following function.
 
 ```elixir
 def send_welcome_email(user_id) do
@@ -19,7 +19,7 @@ def send_welcome_email(user_id) do
 end
 ```
 
-Here's how you use one of the existing mock libraries to replace `Repo.get/2` and `Mailer.send/1` with mocks:
+Here's one possible solution to replace `Repo.get/2` and `Mailer.send/1` with mocks:
 
 ```elixir
 def send_welcome_email(user_id, repo \\ Repo, mailer \\ Mailer) do
