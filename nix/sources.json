@@ -1,4 +1,16 @@
 {
+    "jechol-nur": {
+        "branch": "master",
+        "description": "Nix Packages for Erlang, Elixir, LFE",
+        "homepage": "",
+        "owner": "jechol",
+        "repo": "nur-packages",
+        "rev": "d12fdf0eaacf3749f42c3c7ee78098e2a52ffd95",
+        "sha256": "17wlg3iz2zc6ncbl06fr47c0gd3kannhnh98z6gzfk331cyqfk83",
+        "type": "tarball",
+        "url": "https://github.com/jechol/nur-packages/archive/d12fdf0eaacf3749f42c3c7ee78098e2a52ffd95.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "niv": {
         "branch": "master",
         "description": "Easy dependency management for Nix projects",
@@ -17,10 +29,10 @@
         "homepage": null,
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "13209156c191524437d5556bd8b24a132c4a899a",
-        "sha256": "06g21xf0nd0r2nziw72qk3vp8cd3vdy39snd44fir6j3fyjx1p98",
+        "rev": "b268e89ff7430bb0d52bcc10ab68b9c774854d75",
+        "sha256": "0dlsy9slf3xnsj4z72ng165f3n0291fcy1iniz8z460yxb1nnga4",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/13209156c191524437d5556bd8b24a132c4a899a.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/b268e89ff7430bb0d52bcc10ab68b9c774854d75.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
