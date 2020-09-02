@@ -1,7 +1,10 @@
-name: Elixir CI
+name: Build and mix test
 
 on:
   push:
+    paths-ignore:
+      - README.md
+      - .gitignore
     branches:
       - master
       - dev/*
