@@ -1,15 +1,8 @@
 {
     "jechol-nur": {
-        "branch": "master",
-        "description": "Nix Packages for Erlang, Elixir, LFE",
-        "homepage": "",
-        "owner": "jechol",
-        "repo": "nur-packages",
-        "rev": "d12fdf0eaacf3749f42c3c7ee78098e2a52ffd95",
-        "sha256": "17wlg3iz2zc6ncbl06fr47c0gd3kannhnh98z6gzfk331cyqfk83",
+        "sha256": "0v5fph0rb8bjibbfzapi8pq46hk5aysrmh6x32nxw4p807ix10l0",
         "type": "tarball",
-        "url": "https://github.com/jechol/nur-packages/archive/d12fdf0eaacf3749f42c3c7ee78098e2a52ffd95.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+        "url": "https://github.com/jechol/nur-packages/archive/v1.0.tar.gz"
     },
     "niv": {
         "branch": "master",

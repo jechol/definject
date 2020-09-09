@@ -4,9 +4,6 @@ let
   jechol-nur = import sources.jechol-nur { };
   inherit (pkgs.lib) optional optionals;
 in pkgs.mkShell {
-  buildInputs = [
-    # pkgs.beam.interpreters.erlangR23
-    # pkgs.beam.packages.erlangR23.elixir_1_9
-    jechol-nur.beam.main.packages.erlang_23_0.elixirs.elixir_1_9_0
-  ];
+  buildInputs =
+    [ jechol-nur.beam.main.packages.erlang_22_0.elixirs.elixir_1_10_0 ];
 }
