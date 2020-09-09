@@ -1,4 +1,4 @@
-name: Build and mix test
+name: mix test
 
 on:
   push:
