@@ -10,6 +10,6 @@ let
 in nixpkgs.mkShell {
   buildInputs = [
     jechol.beam.main.erlangs.erlang_23_0
-    jechol.beam.main.packages.erlang_23_0.elixirs.elixir_1_10_0
+    jechol.beam.main.packages.erlang_23_0.elixirs.elixir_1_10_4
   ];
 }

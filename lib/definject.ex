@@ -52,20 +52,25 @@ defmodule Definject do
       end
   """
   defmacro definject(head, body_and_resq) do
-    do_definject(head, body_and_resq, __CALLER__)
-  end
-
-  defmacro definject(head) do
-    do_definject(head, [], __CALLER__)
-  end
-
-  defp do_definject(head, body_and_resq, %Macro.Env{} = env) do
-    alias Definject.Inject
-
     original =
       quote do
         def unquote(head), unquote(body_and_resq)
       end
+
+    do_definject(head, body_and_resq, original, __CALLER__)
+  end
+
+  defmacro definject(head) do
+    original =
+      quote do
+        def unquote(head)
+      end
+
+    do_definject(head, [], original, __CALLER__)
+  end
+
+  defp do_definject(head, body_and_resq, original, %Macro.Env{} = env) do
+    alias Definject.Inject
 
     if Application.get_env(:definject, :enable, Mix.env() == :test) do
       Inject.inject_function(head, body_and_resq, env)

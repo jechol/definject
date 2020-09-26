@@ -24,3 +24,4 @@ definject-*.tar
 
 .tool-versions
 result*
+playground.ex
