@@ -24,24 +24,20 @@ defmodule Definject.Inject do
     inject_head(head)
   end
 
-  # def inject_function(head, [do: body], %Macro.Env{} = env) do
-  #   inject_function(head, [do: body, rescue: nil], env)
-  # end
-
   def inject_function(
         head,
-        total,
+        body,
         %Macro.Env{module: mod, file: file, line: line} = env
       )
-      when is_list(total) do
+      when is_list(body) do
     call_for_clause = call_for_clause(head)
     {name, arity} = get_fa(head)
     injected_head = inject_head(head)
 
     inject_results =
-      [:do, :catch, :rescue, :else, :after]
-      |> Enum.map(fn key ->
-        case total |> Keyword.get(key) |> inject_ast_recursively(env) do
+      body
+      |> Enum.map(fn {key, blk} ->
+        case blk |> inject_ast_recursively(env) do
           {:ok, {_, _, _} = value} ->
             {key, value}
 
@@ -62,9 +58,6 @@ defmodule Definject.Inject do
     injected_body =
       inject_results
       |> Enum.reduce([], fn
-        {_, {nil, _, _}}, acc ->
-          acc
-
         {:do, {injected_blk, _, _}}, acc ->
           do_blk =
             {:do,
@@ -103,19 +96,15 @@ defmodule Definject.Inject do
     {name, 0}
   end
 
-  def inject_ast_recursively(nil, _env) do
-    {:ok, {nil, [], []}}
-  end
-
-  def inject_ast_recursively(body, env) do
-    with {:ok, ^body} <- body |> check_no_modifier_recursively() do
-      {injected_body, {captures, mods}} =
-        body
+  def inject_ast_recursively(blk, env) do
+    with {:ok, ^blk} <- blk |> check_no_modifier_recursively() do
+      {injected_blk, {captures, mods}} =
+        blk
         |> expand_recursively!(env)
         |> mark_remote_call_recursively!()
         |> inject_recursively!()
 
-      {:ok, {injected_body, captures, mods}}
+      {:ok, {injected_blk, captures, mods}}
     end
   end
 

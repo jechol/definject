@@ -173,42 +173,42 @@ defmodule Definject.InjectTest do
     end
   end
 
-  describe "process_body_recursively" do
+  describe "inject_ast_recursively" do
     test "capture is not expanded" do
-      body =
+      blk =
         quote do
           &Calc.sum/2
         end
 
-      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
-      assert_inject(actual, {body, [], []})
+      {:ok, actual} = Inject.inject_ast_recursively(blk, __ENV__)
+      assert_inject(actual, {blk, [], []})
     end
 
     test "access is not expanded" do
-      body =
+      blk =
         quote do
           conn.assigns
         end
 
-      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
-      assert_inject(actual, {body, [], []})
+      {:ok, actual} = Inject.inject_ast_recursively(blk, __ENV__)
+      assert_inject(actual, {blk, [], []})
     end
 
     test ":erlang is not expanded" do
-      body =
+      blk =
         quote do
           :erlang.+(100, 200)
           Kernel.+(100, 200)
         end
 
-      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
-      assert_inject(actual, {body, [], []})
+      {:ok, actual} = Inject.inject_ast_recursively(blk, __ENV__)
+      assert_inject(actual, {blk, [], []})
     end
 
     test "indirect import is allowed" do
       require Calc
 
-      body =
+      blk =
         quote do
           &Calc.sum/2
           Calc.macro_sum(10, 20)
@@ -236,23 +236,23 @@ defmodule Definject.InjectTest do
           end
         end
 
-      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
+      {:ok, actual} = Inject.inject_ast_recursively(blk, __ENV__)
       assert_inject(actual, {exp_ast, [&Math.pow/2], [Math]})
     end
 
     test "direct import is not allowed" do
-      body =
+      blk =
         quote do
           import Calc
 
           sum(a, b)
         end
 
-      {:error, :modifier} = Inject.inject_ast_recursively(body, __ENV__)
+      {:error, :modifier} = Inject.inject_ast_recursively(blk, __ENV__)
     end
 
     test "operator case 1" do
-      body =
+      blk =
         quote do
           Calc.to_int(a) >>> fn a_int -> Calc.to_int(b) >>> fn b_int -> a_int + b_int end end
         end
@@ -271,12 +271,12 @@ defmodule Definject.InjectTest do
             end
         end
 
-      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
+      {:ok, actual} = Inject.inject_ast_recursively(blk, __ENV__)
       assert_inject(actual, {exp_ast, [&Calc.to_int/1, &Calc.to_int/1], [Calc, Calc]})
     end
 
     test "operator case 2" do
-      body =
+      blk =
         quote do
           Calc.to_int(a) >>> fn a_int -> (fn b_int -> a_int + b_int end).(Calc.to_int(b)) end
         end
@@ -297,12 +297,12 @@ defmodule Definject.InjectTest do
             end
         end
 
-      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
+      {:ok, actual} = Inject.inject_ast_recursively(blk, __ENV__)
       assert_inject(actual, {exp_ast, [&Calc.to_int/1, &Calc.to_int/1], [Calc, Calc]})
     end
 
     test "try case 1" do
-      body =
+      blk =
         quote do
           try do
             Calc.id(:try)
@@ -335,7 +335,7 @@ defmodule Definject.InjectTest do
           end
         end
 
-      {:ok, actual} = Inject.inject_ast_recursively(body, __ENV__)
+      {:ok, actual} = Inject.inject_ast_recursively(blk, __ENV__)
 
       assert_inject(
         actual,
@@ -346,7 +346,7 @@ defmodule Definject.InjectTest do
 
   describe "inject_function" do
     test "success case" do
-      {:definject, _, [head, [do: body]]} =
+      {:definject, _, [head, [do: blk]]} =
         quote do
           definject add(a, b) do
             case a do
@@ -388,7 +388,7 @@ defmodule Definject.InjectTest do
           end
         end
 
-      actual = Inject.inject_function(head, [do: body], env_with_macros())
+      actual = Inject.inject_function(head, [do: blk], env_with_macros())
       assert Macro.to_string(actual) == Macro.to_string(expected)
     end
 
