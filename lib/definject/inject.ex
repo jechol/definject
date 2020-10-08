@@ -24,53 +24,70 @@ defmodule Definject.Inject do
     inject_head(head)
   end
 
-  def inject_function(head, [do: body], %Macro.Env{} = env) do
-    inject_function(head, [do: body, rescue: nil], env)
-  end
+  # def inject_function(head, [do: body], %Macro.Env{} = env) do
+  #   inject_function(head, [do: body, rescue: nil], env)
+  # end
 
   def inject_function(
         head,
-        [do: body, rescue: resq],
+        total,
         %Macro.Env{module: mod, file: file, line: line} = env
-      ) do
-    with {:ok, {injected_body, body_captures, body_mods}} <- inject_ast_recursively(body, env),
-         {:ok, {injected_resq, resq_captures, resq_mods}} <- inject_ast_recursively(resq, env) do
-      call_for_clause = call_for_clause(head)
-      {name, arity} = get_fa(head)
+      )
+      when is_list(total) do
+    call_for_clause = call_for_clause(head)
+    {name, arity} = get_fa(head)
+    injected_head = inject_head(head)
 
-      injected_head = inject_head(head)
+    inject_results =
+      [:do, :catch, :rescue, :else, :after]
+      |> Enum.map(fn key ->
+        case total |> Keyword.get(key) |> inject_ast_recursively(env) do
+          {:ok, {_, _, _} = value} ->
+            {key, value}
 
-      do_block =
-        {:do,
-         quote do
-           Definject.Check.validate_deps(
-             deps,
-             {unquote(body_captures ++ resq_captures), unquote(body_mods ++ resq_mods)},
-             unquote(Macro.escape({mod, name, arity}))
-           )
-
-           unquote(injected_body)
-         end}
-
-      resq_block =
-        case injected_resq do
-          nil -> []
-          _ -> [{:rescue, injected_resq}]
+          {:error, :modifier} ->
+            raise CompileError,
+              file: file,
+              line: line,
+              description: "Cannot import/require/use inside definject. Move it to module level."
         end
+      end)
 
-      def_body = [do_block | resq_block]
+    {captures, mods} =
+      inject_results
+      |> Enum.reduce({[], []}, fn {_, {_, captures, mods}}, {capture_acc, mod_acc} ->
+        {capture_acc ++ captures, mod_acc ++ mods}
+      end)
 
-      quote do
-        unquote(injected_head)
+    injected_body =
+      inject_results
+      |> Enum.reduce([], fn
+        {_, {nil, _, _}}, acc ->
+          acc
 
-        def unquote(call_for_clause), unquote(def_body)
-      end
-    else
-      {:error, :modifier} ->
-        raise CompileError,
-          file: file,
-          line: line,
-          description: "Cannot import/require/use inside definject. Move it to module level."
+        {:do, {injected_blk, _, _}}, acc ->
+          do_blk =
+            {:do,
+             quote do
+               Definject.Check.validate_deps(
+                 deps,
+                 {unquote(captures), unquote(mods)},
+                 unquote(Macro.escape({mod, name, arity}))
+               )
+
+               unquote(injected_blk)
+             end}
+
+          acc ++ [do_blk]
+
+        {key, {injected_blk, _, _}}, acc ->
+          acc ++ [{key, injected_blk}]
+      end)
+
+    quote do
+      unquote(injected_head)
+
+      def unquote(call_for_clause), unquote(injected_body)
     end
   end
 
