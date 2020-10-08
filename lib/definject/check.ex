@@ -20,7 +20,7 @@ defmodule Definject.Check do
     end
 
     for {key, value} <- deps do
-      with :ok <- validate_injectable(key),
+      with :ok <- validate_injectable_function_or_module(key),
            :ok <- validate_used(key, {used_captures, used_mods}, strict: strict),
            :ok <- validate_same_type(key, value),
            :ok <- validate_same_arity(key, value) do
@@ -44,14 +44,21 @@ defmodule Definject.Check do
     end
   end
 
-  defp validate_injectable(capture) when is_function(capture) do
-    with :ok <- validate_type_is_external(capture) do
-      {:module, mod} = :erlang.fun_info(capture, :module)
-      validate_injectable(mod)
+  defp validate_injectable_function_or_module(fun = mod) do
+    cond do
+      is_function(fun) -> validate_injectable_function(fun)
+      is_atom(mod) -> validate_injectable_module(mod)
     end
   end
 
-  defp validate_injectable(mod) when is_atom(mod) do
+  defp validate_injectable_function(fun) when is_function(fun) do
+    with :ok <- validate_type_is_external(fun) do
+      {:module, mod} = :erlang.fun_info(fun, :module)
+      validate_injectable_module(mod)
+    end
+  end
+
+  defp validate_injectable_module(mod) when is_atom(mod) do
     if mod in @uninjectable do
       {:error, {:uninjectable_module, mod}}
     else
