@@ -16,7 +16,7 @@ defmodule Definject.TryTest do
         :else -> {:ok, :else}
       end
     rescue
-      e in RuntimeError ->
+      _e in RuntimeError ->
         TryTest.foo(:rescue)
         {:ok, :rescue}
     catch
@@ -45,6 +45,36 @@ defmodule Definject.TryTest do
            }) == {:ok, :rescue}
 
     assert_receive {:rescue, ^rescue_ref}
+    assert_receive {:after, ^after_ref}
+  end
+
+  test "catch" do
+    catch_ref = make_ref()
+    after_ref = make_ref()
+
+    assert Try.execute(:catch, self(), %{
+             &__MODULE__.foo/1 => fn
+               :catch -> send(self(), {:catch, catch_ref})
+               :after -> send(self(), {:after, after_ref})
+             end
+           }) == {:ok, :catch}
+
+    assert_receive {:catch, ^catch_ref}
+    assert_receive {:after, ^after_ref}
+  end
+
+  test "else" do
+    else_ref = make_ref()
+    after_ref = make_ref()
+
+    assert Try.execute(:else, self(), %{
+             &__MODULE__.foo/1 => fn
+               :else -> send(self(), {:else, else_ref})
+               :after -> send(self(), {:after, after_ref})
+             end
+           }) == {:ok, :else}
+
+    assert_receive {:else, ^else_ref}
     assert_receive {:after, ^after_ref}
   end
 end
