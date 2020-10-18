@@ -59,6 +59,17 @@ defmodule Definject do
         })
       end
   """
+  defmacro definject(head, body \\ nil)
+
+  defmacro definject(head, nil) do
+    original =
+      quote do
+        def unquote(head)
+      end
+
+    do_definject(head, [], original, __CALLER__)
+  end
+
   defmacro definject(head, body) do
     original =
       quote do
@@ -66,15 +77,6 @@ defmodule Definject do
       end
 
     do_definject(head, body, original, __CALLER__)
-  end
-
-  defmacro definject(head) do
-    original =
-      quote do
-        def unquote(head)
-      end
-
-    do_definject(head, [], original, __CALLER__)
   end
 
   defp do_definject(head, body, original, %Macro.Env{} = env) do
