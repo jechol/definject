@@ -1,4 +1,12 @@
 defmodule Definject do
+  @doc false
+  defmacro __using__(_opts) do
+    quote do
+      import Kernel, except: [def: 1, def: 2]
+      import Definject.Def, only: [def: 1, def: 2]
+    end
+  end
+
   @doc """
   `definject` transforms a function to accept a map where dependent functions and modules can be injected.
 
