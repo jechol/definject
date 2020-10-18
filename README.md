@@ -1,8 +1,8 @@
-![](https://github.com/definject/definject/blob/master/brand/logo.png?raw=true)
+![](https://github.com/jechol/definject/blob/master/brand/logo.png?raw=true)
 
-[![mix test](https://github.com/definject/definject/workflows/mix%20test/badge.svg)](https://github.com/definject/definject/actions)
+[![mix test](https://github.com/jechol/definject/workflows/mix%20test/badge.svg)](https://github.com/jechol/definject/actions)
 [![Hex version badge](https://img.shields.io/hexpm/v/definject.svg)](https://hex.pm/packages/definject)
-[![License badge](https://img.shields.io/hexpm/l/definject.svg)](https://github.com/definject/definject/blob/master/LICENSE.md)
+[![License badge](https://img.shields.io/hexpm/l/definject.svg)](https://github.com/jechol/definject/blob/master/LICENSE.md)
 
 Unobtrusive Dependency Injector for Elixir
 
