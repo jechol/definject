@@ -146,6 +146,22 @@ end
 
 Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end` when expanded.
 
+### Alias `def` to `definject`
+
+`use Definject` aliases `def` to `definject`.
+
+```elixir
+use Definject
+
+# Following `def` is alias to `definject`.
+def send_welcome_email(user_id) do
+  %{email: email} = Repo.get(User, user_id)
+
+  welcome_email(to: email)
+  |> Mailer.send()
+end
+```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE.md) file for details
