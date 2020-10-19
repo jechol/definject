@@ -32,7 +32,7 @@ end
 
 First, I believe that this approach is too obtrusive as it requires modifying the function body to make it testable. Second, with `Mailer` replaced with `mailer`, the compiler no longer check the existence of `Mailer.send/1`.
 
-`definject` does not require you to modify function arguments or body. Instead, you just need to replace `def` with `definject`. It also allows injecting different mocks to each function. It also does not limit using `:async` option as mocks are contained in each test function.
+`definject` does not require you to modify function arguments or body. It allows injecting different mocks to each function. It also does not limit using `:async` option as mocks are contained in each test function.
 
 ## Installation
 
@@ -63,14 +63,14 @@ API documentation is available at [https://hexdocs.pm/definject](https://hexdocs
 
 ## Usage
 
-### definject
+### use Definject
 
-`definject` transforms a function to accept a map where dependent functions and modules can be injected.
+`use Definject` transforms `def` to accept a extra argument `deps` where dependent functions and modules can be injected.
 
 ```elixir
-import Definject
+use Definject
 
-definject send_welcome_email(user_id) do
+def send_welcome_email(user_id) do
   %{email: email} = Repo.get(User, user_id)
 
   welcome_email(to: email)
@@ -78,7 +78,7 @@ definject send_welcome_email(user_id) do
 end
 ```
 
-is expanded into (simplified to understand)
+is expanded into
 
 ```elixir
 def send_welcome_email(user_id, deps \\ %{}) do
@@ -111,7 +111,7 @@ test "send_welcome_email" do
 end
 ```
 
-`definject` raises if the passed map includes a function or a module that's not used within the injected function.
+Function calls raise if the `deps` includes redundant functions or modules.
 You can disable this by adding `strict: false` option.
 
 ```elixir
@@ -146,15 +146,14 @@ end
 
 Note that `Process.send(self(), :email_sent)` is surrounded by `fn _ -> end` when expanded.
 
-### Alias `def` to `definject`
+### import Definject
 
-`use Definject` aliases `def` to `definject`.
+`import Definject` instead of `use Definject` if you want to manually select functions to inject.
 
 ```elixir
-use Definject
+import Definject
 
-# Following `def` is alias to `definject`.
-def send_welcome_email(user_id) do
+definject send_welcome_email(user_id) do
   %{email: email} = Repo.get(User, user_id)
 
   welcome_email(to: email)
