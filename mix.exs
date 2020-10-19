@@ -1,7 +1,7 @@
 defmodule Definject.MixProject do
   use Mix.Project
 
-  @version "1.1.7"
+  @version "1.2.0"
 
   def project do
     [
