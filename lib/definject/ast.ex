@@ -22,7 +22,7 @@ defmodule Definject.AST do
   end
 
   def quote_function_capture({mod, name, arity}) do
-    mf = {{:., [], [mod, name]}, [], []}
+    mf = {{:., [], [mod, name]}, [no_parens: true], []}
     mfa = {:/, [], [mf, arity]}
     {:&, [], [mfa]}
   end
