@@ -1,15 +1,15 @@
 let
   nixpkgs = import (fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/archive/20.09-alpha.tar.gz";
-    sha256 = "0dxrfr0w5ksvpjwz0d2hy7x7dirnc2xk9nw1np3wr6kvdlzhs3ik";
+    url = "https://github.com/NixOS/nixpkgs/archive/20.09.tar.gz";
+    sha256 = "1wg61h4gndm3vcprdcg7rc4s1v3jkm5xd7lw8r2f67w502y94gcy";
   }) { };
-  jechol = import (fetchTarball {
-    url = "https://github.com/jechol/nur-packages/archive/v2.5.tar.gz";
-    sha256 = "08dgk1ha5spxwba4275hs22298z9z3l087cw1cdllhsp8r9h4vnh";
+  beam = import (fetchTarball {
+    url = "https://github.com/jechol/nix-beam/archive/v4.3.tar.gz";
+    sha256 = "117c43s256i2nzp0zps9n2f630gm00yhsbgc78r2qimi0scdxf52";
   }) { };
 in nixpkgs.mkShell {
   buildInputs = [
-    jechol.beam.main.erlangs.erlang_23_1
-    jechol.beam.main.packages.erlang_23_1.elixirs.elixir_1_11_0
+    beam.erlang.v23_1
+    beam.pkg.v23_1.elixir.v1_11_0
   ];
 }
