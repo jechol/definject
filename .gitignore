@@ -24,3 +24,5 @@ definject-*.tar
 
 result*
 playground.ex
+
+.direnv
