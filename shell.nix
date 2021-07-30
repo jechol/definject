@@ -1,15 +1,15 @@
 let
   nixpkgs = import (fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/archive/20.09.tar.gz";
-    sha256 = "1wg61h4gndm3vcprdcg7rc4s1v3jkm5xd7lw8r2f67w502y94gcy";
+    url = "https://github.com/trevorite/nixpkgs/archive/21.05.tar.gz";
+    sha256 = "sha256:1ckzhh24mgz6jd1xhfgx0i9mijk6xjqxwsshnvq789xsavrmsc36";
   }) { };
-  beam = import (fetchTarball {
-    url = "https://github.com/jechol/nix-beam/archive/v4.3.tar.gz";
-    sha256 = "117c43s256i2nzp0zps9n2f630gm00yhsbgc78r2qimi0scdxf52";
-  }) { };
+  platform = if nixpkgs.stdenv.isDarwin then [
+    nixpkgs.darwin.apple_sdk.frameworks.CoreServices
+    nixpkgs.darwin.apple_sdk.frameworks.Foundation
+  ] else if nixpkgs.stdenv.isLinux then
+    [ nixpkgs.inotify-tools ]
+  else
+    [ ];
 in nixpkgs.mkShell {
-  buildInputs = [
-    beam.erlang.v23_1
-    beam.pkg.v23_1.elixir.v1_11_0
-  ];
+  buildInputs = [ nixpkgs.erlang nixpkgs.elixir ] ++ platform;
 }
