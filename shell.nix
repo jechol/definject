@@ -1,7 +1,7 @@
 let
   nixpkgs = import (fetchTarball {
-    url = "https://github.com/trevorite/nixpkgs/archive/21.05.tar.gz";
-    sha256 = "sha256:1ckzhh24mgz6jd1xhfgx0i9mijk6xjqxwsshnvq789xsavrmsc36";
+    url = "https://github.com/trevorite/nixpkgs/archive/otp24-no-jit.tar.gz";
+    sha256 = "sha256:01n9hn9v7w9kgcd4zipf08bg9kskmpm7sp7f8z3yawk2c0w7q2kl";
   }) { };
   platform = if nixpkgs.stdenv.isDarwin then [
     nixpkgs.darwin.apple_sdk.frameworks.CoreServices
@@ -11,5 +11,10 @@ let
   else
     [ ];
 in nixpkgs.mkShell {
-  buildInputs = [ nixpkgs.erlang nixpkgs.elixir ] ++ platform;
+  buildInputs = with nixpkgs;
+    [
+      # OTP
+      erlang
+      elixir
+    ] ++ platform;
 }
