@@ -319,6 +319,11 @@ defmodule Definject.InjectTest do
         quote do
           try do
             Map.get(deps, &Calc.id/1, :erlang.make_fun(Map.get(deps, Calc, Calc), :id, 1)).(:try)
+          else
+            x ->
+              Map.get(deps, &Calc.id/1, :erlang.make_fun(Map.get(deps, Calc, Calc), :id, 1)).(
+                :else
+              )
           rescue
             e in ArithmeticError ->
               Map.get(deps, &Calc.id/1, :erlang.make_fun(Map.get(deps, Calc, Calc), :id, 1)).(e)
@@ -326,11 +331,6 @@ defmodule Definject.InjectTest do
             :error, number ->
               Map.get(deps, &Calc.id/1, :erlang.make_fun(Map.get(deps, Calc, Calc), :id, 1)).(
                 number
-              )
-          else
-            x ->
-              Map.get(deps, &Calc.id/1, :erlang.make_fun(Map.get(deps, Calc, Calc), :id, 1)).(
-                :else
               )
           end
         end
