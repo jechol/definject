@@ -21,7 +21,7 @@ jobs:
     strategy:
       matrix:
         elixir: [1.14.0]
-        otp: [23.0, 24.0, 25.0]
+        otp: [24.0, 25.0]
     steps:
       - uses: actions/checkout@v2
       - uses: erlef/setup-beam@v1
@@ -36,22 +36,7 @@ jobs:
     strategy:
       matrix:
         elixir: [1.13.0]
-        otp: [22.0, 23.0, 24.0]
-    steps:
-      - uses: actions/checkout@v2
-      - uses: erlef/setup-beam@v1
-        with:
-          elixir-version: ${{matrix.elixir}}
-          otp-version: ${{matrix.otp}}
-      - run: mix deps.get
-      - run: mix test
-  elixir_1_12:
-    runs-on: ubuntu-latest
-    name: Test on Elixir ${{matrix.elixir}} / OTP ${{matrix.otp}}
-    strategy:
-      matrix:
-        elixir: [1.12.0]
-        otp: [22.0, 23.0, 24.0]
+        otp: [23.0, 24.0]
     steps:
       - uses: actions/checkout@v2
       - uses: erlef/setup-beam@v1
