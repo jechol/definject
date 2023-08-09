@@ -16,7 +16,7 @@ jobs:
   # Refactoring duplicated yaml is currently not possible
   # because Github does not support anchor syntax (& and *) now.
   elixir_1_14:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     name: Test on Elixir ${{matrix.elixir}} / OTP ${{matrix.otp}}
     strategy:
       matrix:
@@ -31,7 +31,7 @@ jobs:
       - run: mix deps.get
       - run: mix test
   elixir_1_13:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     name: Test on Elixir ${{matrix.elixir}} / OTP ${{matrix.otp}}
     strategy:
       matrix:
